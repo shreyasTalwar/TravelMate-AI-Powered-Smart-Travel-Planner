@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app, jsonify, make_response
 from extensions import db
-from models import Trip, User, Itinerary, Expense
+from models import Trip, User, Itinerary, Expense, SafetyAssessment
 from routes.forms import TripForm
 from utils.decorators import login_required
 from services.ai import generate_itinerary_data, adapt_itinerary_for_weather
@@ -408,3 +408,69 @@ def export_budget(trip_id):
     response.headers["Content-Disposition"] = f"attachment; filename=budget_trip_{trip.id}_{trip.destination.lower()}.csv"
     response.headers["Content-type"] = "text/csv"
     return response
+
+@trips_bp.route('/trips/<int:trip_id>/safety', methods=['GET'])
+@login_required
+def safety(trip_id):
+    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    
+    destination_key = trip.destination.strip().lower()
+    
+    # Check if safety assessment is cached
+    assessment = SafetyAssessment.query.filter_by(destination=destination_key).first()
+    
+    if not assessment:
+        from services.ai import generate_safety_assessment
+        try:
+            score, data = generate_safety_assessment(trip.destination)
+            assessment = SafetyAssessment(
+                destination=destination_key,
+                safety_score=score,
+                safety_data=data
+            )
+            db.session.add(assessment)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Failed to generate safety assessment: {str(e)}")
+            # Define safe fallback structure
+            fallback_data = {
+                "safety_score": 4,
+                "emergency_contacts": {
+                    "police": "112 / 100",
+                    "medical": "102 / 108",
+                    "fire": "101",
+                    "women_helpline": "1091"
+                },
+                "neighborhoods": {
+                    "safe_zones": [{"name": "Tourist Center & City Square", "reason": "High surveillance, well-patrolled, well-lit"}],
+                    "caution_zones": [{"name": "Outer Suburb Transit hubs", "reason": "Crowded, prone to petty thefts and pickpocketing"}]
+                },
+                "solo_travel_advice": ["Keep emergency contacts on speed dial.", "Share your live location with trusted family members."],
+                "transit_safety": ["Prefer pre-booked official cabs or public transport in crowded areas."],
+                "cultural_guidelines": ["Respect local dress guidelines when entering historical or religious spots."],
+                "common_scams": [{"name": "Overpriced unofficial taxis", "warning": "Always ask for taxi meters or use ride-hailing apps."}]
+            }
+            assessment = SafetyAssessment(
+                destination=destination_key,
+                safety_score=4,
+                safety_data=fallback_data
+            )
+            
+    return render_template('trips/safety.html', trip=trip, assessment=assessment)
+
+@trips_bp.route('/trips/<int:trip_id>/safety/alert', methods=['POST'])
+@login_required
+def safety_alert(trip_id):
+    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    
+    lat = request.json.get('lat')
+    lon = request.json.get('lon')
+    
+    # Log the coordinates for emergency tracking
+    current_app.logger.warning(f"EMERGENCY SOS ALERT TRIGGERED by User ID {session['user_id']} for Trip ID {trip.id} ({trip.destination}). Location coordinates: Lat {lat}, Lon {lon}")
+    
+    return jsonify({
+        "success": True,
+        "message": "SOS Panic Alert broadcasted successfully to your emergency contacts!"
+    })

@@ -250,3 +250,127 @@ def adapt_itinerary_for_weather(trip_data, current_itinerary_json, weather_forec
                 raise e
                 
     raise Exception("Failed to adapt itinerary.")
+
+def generate_safety_assessment(destination):
+    """
+    Communicates with OpenRouter API to generate a safety assessment for a destination.
+    Returns:
+      - safety_score: Integer (1-5)
+      - safety_data: Dictionary
+    """
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    model = os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash")
+    
+    if not api_key:
+        raise ValueError("OpenRouter API key is missing. Set OPENROUTER_API_KEY in your env.")
+        
+    prompt = f"""
+    Perform a comprehensive safety assessment for travelers visiting {destination}, with a special focus on women solo travelers.
+    
+    You MUST respond with a valid, clean JSON object ONLY. Do not write any preamble, explanation, or markdown code blocks (like ```json).
+    The JSON structure MUST follow this exact schema:
+    {{
+      "safety_score": 4, // Integer from 1 to 5 (1 = Dangerous, 5 = Extremely Safe)
+      "emergency_contacts": {{
+        "police": "100 or specific local number",
+        "medical": "102 or specific local number",
+        "fire": "101 or specific local number",
+        "women_helpline": "1091 or specific helpline"
+      }},
+      "neighborhoods": {{
+        "safe_zones": [
+          {{"name": "Area Name 1", "reason": "Well-lit, highly patrolled, tourist-friendly"}},
+          {{"name": "Area Name 2", "reason": "Residential, safe and friendly vibe"}}
+        ],
+        "caution_zones": [
+          {{"name": "Area Name 3", "reason": "Poorly lit at night, pickpocketing hot spot"}},
+          {{"name": "Area Name 4", "reason": "Isolated industrial area, skip after dark"}}
+        ]
+      }},
+      "solo_travel_advice": [
+        "Solo advice item 1",
+        "Solo advice item 2"
+      ],
+      "transit_safety": [
+        "Transport warning/advice 1",
+        "Transport warning/advice 2"
+      ],
+      "cultural_guidelines": [
+        "Dress code or cultural norm advice 1",
+        "Norm advice 2"
+      ],
+      "common_scams": [
+        {{"name": "Scam Name 1", "warning": "How the scam works and how to avoid it"}},
+        {{"name": "Scam Name 2", "warning": "Details on avoiding this taxi/vendor trick"}}
+      ]
+    }}
+    """
+    
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 2000,
+        "temperature": 0.3
+    }
+    
+    retries = 2
+    for attempt in range(retries + 1):
+        try:
+            current_app.logger.info(f"Sending safety assessment request for {destination} to OpenRouter (Attempt {attempt+1}/{retries+1})...")
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            
+            if response.status_code == 200:
+                res_json = response.json()
+                content = res_json['choices'][0]['message']['content'].strip()
+                
+                if content.startswith("```"):
+                    lines = content.split("\n")
+                    if lines[0].startswith("```json") or lines[0].startswith("```"):
+                        lines = lines[1:-1]
+                    content = "\n".join(lines).strip()
+                
+                parsed_data = json.loads(content)
+                
+                score = parsed_data.get('safety_score', 4)
+                try:
+                    score = max(1, min(5, int(score)))
+                except:
+                    score = 4
+                    
+                return score, parsed_data
+            else:
+                current_app.logger.error(f"OpenRouter Safety Error: status {response.status_code}: {response.text}")
+                if attempt == retries:
+                    raise Exception(f"OpenRouter Error {response.status_code}: {response.text}")
+        except json.JSONDecodeError as jde:
+            current_app.logger.error(f"Safety JSON Parsing Error on attempt {attempt+1}: {str(jde)}")
+            if attempt == retries:
+                raise Exception("AI generated malformed safety JSON.")
+        except Exception as e:
+            current_app.logger.error(f"Safety API Request Exception on attempt {attempt+1}: {str(e)}")
+            if attempt == retries:
+                raise e
+                
+    fallback_data = {
+        "safety_score": 4,
+        "emergency_contacts": {
+            "police": "112 / 100",
+            "medical": "102 / 108",
+            "fire": "101",
+            "women_helpline": "1091"
+        },
+        "neighborhoods": {
+            "safe_zones": [{"name": "Tourist Center & City Square", "reason": "High surveillance, well-patrolled, well-lit"}],
+            "caution_zones": [{"name": "Outer Suburb Transit hubs", "reason": "Crowded, prone to petty thefts and pickpocketing"}]
+        },
+        "solo_travel_advice": ["Keep emergency contacts on speed dial.", "Share your live location with trusted family members."],
+        "transit_safety": ["Prefer pre-booked official cabs or public transport in crowded areas."],
+        "cultural_guidelines": ["Respect local dress guidelines when entering historical or religious spots."],
+        "common_scams": [{"name": "Overpriced unofficial taxis", "warning": "Always ask for taxi meters or use ride-hailing apps."}]
+    }
+    return 4, fallback_data

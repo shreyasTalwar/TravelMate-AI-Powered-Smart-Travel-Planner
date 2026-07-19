@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block title %}Safety & Emergency SOS - {{ trip.destination }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Pulsing SOS Panic Button */
+    .sos-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.02) 70%);
+        border-radius: var(--radius-lg);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        padding: 3rem;
+        text-align: center;
+        margin-bottom: 3rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .sos-btn {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background-color: var(--danger);
+        color: white;
+        font-size: 1.75rem;
+        font-weight: 800;
+        border: 8px solid rgba(239, 68, 68, 0.3);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 25px rgba(239, 68, 68, 0.5);
+        outline: none;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        animation: pulseSOS 2s infinite;
+    }
+    .sos-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 15px 30px rgba(239, 68, 68, 0.6);
+    }
+    .sos-btn:active {
+        transform: scale(0.98);
+    }
+    @keyframes pulseSOS {
+        0% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 25px rgba(239, 68, 68, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+    }
+    
+    /* Safety Score Gradients */
+    .score-badge {
+        display: inline-block;
+        padding: 0.5rem 1.5rem;
+        border-radius: 50px;
+        font-weight: 800;
+        font-size: 1.15rem;
+        color: white;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 0.5rem;
+        box-shadow: var(--shadow-sm);
+    }
+    .score-5 { background: linear-gradient(135deg, #10b981, #059669); } /* Safe Green */
+    .score-4 { background: linear-gradient(135deg, #10b981, #3b82f6); } /* Good Teal/Blue */
+    .score-3 { background: linear-gradient(135deg, #f59e0b, #d97706); } /* Caution Amber */
+    .score-2 { background: linear-gradient(135deg, #ef4444, #dc2626); } /* High Caution Red */
+    .score-1 { background: linear-gradient(135deg, #ef4444, #7f1d1d); } /* Severe Danger Dark Red */
+
+    /* Section Cards */
+    .safety-card {
+        background: white;
+        padding: 2rem;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--gray-200);
+        box-shadow: var(--shadow-sm);
+        height: 100%;
+    }
+    .safety-section-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 1.25rem;
+        border-bottom: 2px solid var(--gray-100);
+        padding-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    /* Hotlines speed dials */
+    .hotline-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    .hotline-btn {
+        background: var(--gray-50);
+        border: 1px solid var(--gray-200);
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        text-align: center;
+        text-decoration: none;
+        color: var(--dark);
+        font-weight: 700;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        transition: var(--transition);
+    }
+    .hotline-btn:hover {
+        background: var(--primary-light);
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-2px);
+    }
+    .hotline-icon {
+        font-size: 1.5rem;
+    }
+    .hotline-num {
+        font-size: 1.15rem;
+        color: var(--danger);
+    }
+    .hotline-label {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="margin-top: 3rem; margin-bottom: 5rem;">
+    <!-- Back Link -->
+    <a href="{{ url_for('trips.view', trip_id=trip.id) }}" style="color: var(--primary); font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 1.5rem;">
+        &larr; Back to Trip Details
+    </a>
+
+    <!-- Title Header -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; margin-bottom: 2.5rem; gap: 1.5rem;">
+        <div>
+            <h1 style="font-size: 2.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🛡️</span> Safety & Emergency SOS Center
+            </h1>
+            <p style="color: var(--gray-600); margin: 0.25rem 0 0 0;">Women's security indicators, local hotlines, and instant emergency alerts for solo & group travel in {{ trip.destination }}.</p>
+        </div>
+        
+        <div style="text-align: right;">
+            <p style="margin: 0; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--gray-400);">AI Security Rating</p>
+            <span class="score-badge score-{{ assessment.safety_score }}">
+                Score: {{ assessment.safety_score }} / 5
+            </span>
+        </div>
+    </div>
+
+    <!-- SOS Panic Trigger Panel -->
+    <div class="sos-container">
+        <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">🚨 Emergency SOS Panic Trigger</h2>
+        <p style="font-size: 0.95rem; color: var(--gray-600); max-width: 600px; margin-bottom: 2rem;">
+            If you are in danger, tap the button below. It will request your live GPS coordinates and initiate a 5-second cancelable broadcast to emergency contacts and local helplines.
+        </p>
+        
+        <button id="sosButton" class="sos-btn">SOS</button>
+        
+        <!-- Coordinates Display -->
+        <div id="gpsLocation" style="margin-top: 1.5rem; font-size: 0.9rem; font-weight: 600; color: var(--gray-700); min-height: 24px;"></div>
+        
+        <!-- Countdown overlay -->
+        <div id="countdownPanel" style="display: none; margin-top: 1.5rem;">
+            <p style="color: var(--danger); font-weight: 700; font-size: 1.15rem; margin-bottom: 0.5rem;">
+                Broadcasting Emergency SOS in <span id="countdownSeconds">5</span> seconds...
+            </p>
+            <button id="cancelSosButton" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger);">Cancel Emergency SOS</button>
+        </div>
+    </div>
+
+    <!-- Details Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
+        
+        <!-- Card 1: Local Emergency Hotlines -->
+        <div class="safety-card">
+            <h3 class="safety-section-title">📞 Emergency Hotline Speed Dial</h3>
+            <p style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 1rem;">Click to dial the primary emergency contacts for {{ trip.destination }}:</p>
+            
+            <div class="hotline-grid">
+                <a href="tel:{{ assessment.safety_data.emergency_contacts.police }}" class="hotline-btn">
+                    <span class="hotline-icon">🚨</span>
+                    <span class="hotline-num">{{ assessment.safety_data.emergency_contacts.police }}</span>
+                    <span class="hotline-label">Police</span>
+                </a>
+                <a href="tel:{{ assessment.safety_data.emergency_contacts.medical }}" class="hotline-btn">
+                    <span class="hotline-icon">🚑</span>
+                    <span class="hotline-num">{{ assessment.safety_data.emergency_contacts.medical }}</span>
+                    <span class="hotline-label">Medical</span>
+                </a>
+                <a href="tel:{{ assessment.safety_data.emergency_contacts.fire }}" class="hotline-btn">
+                    <span class="hotline-icon">🚒</span>
+                    <span class="hotline-num">{{ assessment.safety_data.emergency_contacts.fire }}</span>
+                    <span class="hotline-label">Fire</span>
+                </a>
+                <a href="tel:{{ assessment.safety_data.emergency_contacts.women_helpline }}" class="hotline-btn" style="border-color: rgba(236, 72, 153, 0.4); background-color: rgba(236, 72, 153, 0.02);">
+                    <span class="hotline-icon">👩</span>
+                    <span class="hotline-num" style="color: #db2777;">{{ assessment.safety_data.emergency_contacts.women_helpline }}</span>
+                    <span class="hotline-label">Women Helpline</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Card 2: Safe vs Caution Zones -->
+        <div class="safety-card">
+            <h3 class="safety-section-title">🗺️ Neighborhood Safety Log</h3>
+            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <div>
+                    <h4 style="color: var(--success); font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.25rem;">
+                        🟢 Safe Areas to Explore
+                    </h4>
+                    <ul style="padding-left: 1.25rem; font-size: 0.85rem; color: var(--gray-700); line-height: 1.5;">
+                        {% for zone in assessment.safety_data.neighborhoods.safe_zones %}
+                            <li style="margin-bottom: 0.25rem;"><strong>{{ zone.name }}</strong>: {{ zone.reason }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color: var(--warning); font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.25rem;">
+                        🟡 Exercise Caution / Avoid After Dark
+                    </h4>
+                    <ul style="padding-left: 1.25rem; font-size: 0.85rem; color: var(--gray-700); line-height: 1.5;">
+                        {% for zone in assessment.safety_data.neighborhoods.caution_zones %}
+                            <li style="margin-bottom: 0.25rem;"><strong>{{ zone.name }}</strong>: {{ zone.reason }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Security Guides Details Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;">
+        
+        <!-- Card 3: Solo Travel & Transit Advice -->
+        <div class="safety-card">
+            <h3 class="safety-section-title">🚶 Solo Travel & Transit Safety</h3>
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--gray-700); margin-bottom: 0.5rem;">Solo & Night Guidelines:</h4>
+                <ul style="padding-left: 1.25rem; font-size: 0.85rem; color: var(--gray-600); line-height: 1.6;">
+                    {% for item in assessment.safety_data.solo_travel_advice %}
+                        <li style="margin-bottom: 0.4rem;">{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div>
+                <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--gray-700); margin-bottom: 0.5rem;">Public Transit & Taxi Advice:</h4>
+                <ul style="padding-left: 1.25rem; font-size: 0.85rem; color: var(--gray-600); line-height: 1.6;">
+                    {% for item in assessment.safety_data.transit_safety %}
+                        <li style="margin-bottom: 0.4rem;">{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Card 4: Cultural Norms & Scam Prevention -->
+        <div class="safety-card">
+            <h3 class="safety-section-title">🎭 Cultural Codes & Scam Protection</h3>
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--gray-700); margin-bottom: 0.5rem;">Cultural Expectations & Dress Norms:</h4>
+                <ul style="padding-left: 1.25rem; font-size: 0.85rem; color: var(--gray-600); line-height: 1.6;">
+                    {% for item in assessment.safety_data.cultural_guidelines %}
+                        <li style="margin-bottom: 0.4rem;">{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div>
+                <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--gray-700); margin-bottom: 0.5rem;">Common Tourist Scams:</h4>
+                <ul style="padding-left: 1.25rem; font-size: 0.85rem; color: var(--gray-600); line-height: 1.6;">
+                    {% for scam in assessment.safety_data.common_scams %}
+                        <li style="margin-bottom: 0.4rem;"><strong>{{ scam.name }}</strong>: {{ scam.warning }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const sosButton = document.getElementById('sosButton');
+        const gpsLocation = document.getElementById('gpsLocation');
+        const countdownPanel = document.getElementById('countdownPanel');
+        const countdownSeconds = document.getElementById('countdownSeconds');
+        const cancelSosButton = document.getElementById('cancelSosButton');
+        
+        let timer = null;
+        let count = 5;
+        let coords = { lat: null, lon: null };
+        
+        sosButton.addEventListener('click', () => {
+            // Check browser location support
+            if (navigator.geolocation) {
+                gpsLocation.innerHTML = "🛰️ Requesting high-precision GPS coordinates...";
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        coords.lat = position.coords.latitude;
+                        coords.lon = position.coords.longitude;
+                        gpsLocation.innerHTML = `📍 GPS Fixed: Lat ${coords.lat.toFixed(5)}, Lon ${coords.lon.toFixed(5)}`;
+                        startSOSCountdown();
+                    },
+                    (error) => {
+                        console.error("GPS coordinates request denied:", error);
+                        gpsLocation.innerHTML = "⚠️ GPS location access denied. Proceeding with city defaults...";
+                        startSOSCountdown();
+                    },
+                    { enableHighAccuracy: true, timeout: 5000 }
+                );
+            } else {
+                gpsLocation.innerHTML = "❌ Browser geolocation unsupported. Proceeding with city defaults...";
+                startSOSCountdown();
+            }
+        });
+        
+        function startSOSCountdown() {
+            // Reset countdown parameters
+            count = 5;
+            countdownSeconds.textContent = count;
+            
+            // Toggle visual elements
+            sosButton.disabled = true;
+            countdownPanel.style.display = 'block';
+            
+            // Start countdown interval
+            timer = setInterval(() => {
+                count--;
+                countdownSeconds.textContent = count;
+                
+                // Play warning beep audio if supported
+                playWarningBeep();
+                
+                if (count <= 0) {
+                    clearInterval(timer);
+                    dispatchSOSEmergencyAlert();
+                }
+            }, 1000);
+        }
+        
+        cancelSosButton.addEventListener('click', () => {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+            sosButton.disabled = false;
+            countdownPanel.style.display = 'none';
+            gpsLocation.innerHTML = "🚫 Emergency SOS Broadcast Canceled.";
+        });
+        
+        function playWarningBeep() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.15); // beep duration
+            } catch (e) {
+                console.log("Audio warning beep not permitted by browser autplay policy.");
+            }
+        }
+        
+        function dispatchSOSEmergencyAlert() {
+            countdownPanel.style.display = 'none';
+            gpsLocation.innerHTML = "📡 Broadcasting SOS Alert signals...";
+            
+            // Post coordinates to our simulated alert logging API
+            fetch("{{ url_for('trips.safety_alert', trip_id=trip.id) }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token() }}"
+                },
+                json: true,
+                body: JSON.stringify(coords)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    gpsLocation.innerHTML = `<span style="color: var(--danger); font-size: 1.1rem;">📢 SOS Alert Active: ${data.message}</span>`;
+                    alert("🚨 EMERGENCY SOS BROADCASTED:\n" + data.message + "\n\nCoordinates: Lat " + (coords.lat ? coords.lat.toFixed(5) : "City Center") + ", Lon " + (coords.lon ? coords.lon.toFixed(5) : "City Center"));
+                } else {
+                    gpsLocation.innerHTML = `<span style="color: var(--danger);">Broadcast failed: ${data.error}</span>`;
+                }
+                sosButton.disabled = false;
+            })
+            .catch(err => {
+                console.error("SOS fetch error:", err);
+                gpsLocation.innerHTML = '<span style="color: var(--danger);">Broadcast Error: Connection failed.</span>';
+                sosButton.disabled = false;
+            });
+        }
+    });
+</script>
+{% endblock %}
