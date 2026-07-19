@@ -1,112 +1,120 @@
-# TravelMate – AI Powered Smart Travel Planner
+<div align="center">
 
-TravelMate is a premium, full-stack, AI-powered travel planning SaaS platform. The application combines itinerary generation, live weather, interactive maps, safety recommendations, emergency assistance, budgeting, and travel management into a single, cohesive interface.
+# 🌍 TravelMate
+### AI-Powered Smart Travel Planner
 
-## 🚀 Tech Stack
+A premium, full-stack SaaS platform that brings itinerary generation, live weather, interactive maps, safety intelligence, budgeting, and collaborative trip planning together in one cohesive interface.
 
-- **Frontend**: HTML5, CSS3 (Custom Variables, CSS Grids, Glassmorphism, Micro-animations), Vanilla JavaScript, Chart.js, Leaflet.js.
-- **Backend**: Python, Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-Limiter, xhtml2pdf.
-- **Database**: MySQL.
-- **APIs**:
-  - **OpenRouter (Gemini 2.5 Flash)**: AI Itinerary generation, weather adaptations, safety assessments, and phrase translations.
-  - **OpenWeather API**: Synchronized live weather forecasts.
-  - **OpenStreetMap & Leaflet.js**: Geolocation mapping canvas.
-  - **Nominatim & Overpass API**: Coordinate resolving and localized Points of Interest (POIs).
-  - **ExchangeRate API**: Real-time foreign exchange rate caching.
+[![Python](https://img.shields.io/badge/Python-3.x-blue)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-Backend-black)](https://flask.palletsprojects.com/)
+[![MySQL](https://img.shields.io/badge/MySQL-Database-orange)](https://www.mysql.com/)
+[![License](https://img.shields.io/badge/License-MIT-green)](#license)
+
+</div>
 
 ---
 
-## 📅 Development Roadmap & Status
+## 📖 Overview
 
-### ✅ Phase 0: Environment Setup
-- Initialized python packages, database configurations, and secure `.env` loaders.
-- Configured local database connection pipelines.
+TravelMate turns raw trip ideas into fully structured, AI-generated itineraries — then keeps them useful on the road with live weather rerouting, offline PDF exports, safety tooling, and real-time trip collaboration.
 
-### ✅ Phase 1: Foundation & Authentication
-- Secure registration and login modules protected by `Flask-WTF` CSRF and rate-limited via `Flask-Limiter`.
-- Hashed passwords using `bcrypt`.
-- Custom user profile editing and local storage upload stub.
-- Custom styled error pages (404, 500, 429).
+## ✨ Features
 
-### ✅ Phase 2: Dashboard & Trip Management CRUD
-- Dynamic traveler dashboard tracking planned budget aggregates and total trips.
-- Differentiated listings for **Upcoming Adventures** vs **Past Journeys**.
-- Trip creator form verifying sequential dates and parsing travel interests checklist.
+| Category | Highlights |
+|---|---|
+| 🔐 **Auth & Accounts** | CSRF-protected registration/login, bcrypt password hashing, rate-limited endpoints, editable profiles |
+| 🗺️ **AI Itineraries** | Gemini-generated day-by-day plans with restaurants, transit tips, hidden gems, and rain alternatives — with version history |
+| 🌦️ **Weather Intelligence** | Live OpenWeather forecasts with AI-driven itinerary adaptation when rain is forecast |
+| 📍 **Smart Maps** | Leaflet.js maps with toggleable POI layers (hotels, restaurants, attractions, hospitals, police, ATMs) via Overpass API |
+| 💰 **Budget Planner** | Manual expense ledger, AI-extracted predicted costs, Chart.js visual breakdowns, CSV export |
+| 🚨 **Safety Module** | AI safety scores, scam warnings, emergency helplines, and a Panic SOS button that shares live geolocation |
+| 📄 **Offline Access** | One-click PDF export and print-friendly itinerary views |
+| 👥 **Group Travel** | Shareable invite codes and real-time collaborative trip chat |
+| 💱 **Currency & Language** | Live currency conversion and AI-powered phrase translation with phonetic guides |
 
-### ✅ Phase 3: AI Itinerary Generator
-- Connected to OpenRouter to query Gemini.
-- Formulated instruction sets producing structured JSON itineraries containing day slots, restaurant guides, transit advice, hidden gems, and rain alternatives.
-- Implemented database itinerary versioning snapshots so users can view and toggle between generations.
+## 🧱 Tech Stack
 
-### ✅ Phase 4: Weather Intelligence
-- Geocoded locations and fetched daily forecasts from OpenWeather.
-- Configured 30-minute in-memory caching to respect API limits.
-- Built AI-driven itinerary adaptation rearranger adjusting plans based on rain forecasts.
+**Frontend** — HTML5, CSS3 (custom properties, grid, glassmorphism, micro-animations), Vanilla JavaScript, Chart.js, Leaflet.js
 
-### ✅ Phase 5: Smart Maps
-- Embedded Leaflet.js maps centering on destinations.
-- Queried Overpass API to fetch nearby Hotels, Restaurants, Attractions, Hospitals, Police stations, and ATMs.
-- Structured filter switches allowing users to toggle marker categories on the map in real-time.
-- Cached map POI results in MySQL database.
+**Backend** — Python, Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-Limiter, xhtml2pdf
 
-### ✅ Phase 6: Budget Planner & Cost Tracker
-- Interactive manual expense ledger allowing travelers to log costs categorized by Hotel, Food, Transport, Shopping, Activities, and Emergency Funds.
-- Built-in AI cost extraction that parses the active itinerary to sum predicted budgets.
-- Visual spent-breakdown doughnut charts and side-by-side estimation comparison graphs using Chart.js.
-- CSV export logs for personal auditing.
+**Database** — MySQL
 
-### ✅ Phase 7: Women's Safety Module
-- AI-graded Travel Safety Scores (1-5 scale) providing localized safety guidelines, common tourist scam warning lists, and emergency helper phone numbers.
-- Emergency Speed Dial buttons for Police, Medical, Fire, and Women's Helplines.
-- Pulse Panic SOS trigger counting down for 5 seconds (with audio beeps), requesting browser Geolocation coordinates, and broadcasting coordinates to emergency server logs.
+**External APIs**
+- OpenRouter (Gemini 2.5 Flash) — itinerary generation, weather adaptation, safety scoring, translation
+- OpenWeather — live forecasts
+- OpenStreetMap + Leaflet.js — mapping
+- Nominatim & Overpass — geocoding and points of interest
+- ExchangeRate API — live currency conversion
 
-### ✅ Phase 8: Offline PDF Exporter
-- PDF compilation engines utilizing `xhtml2pdf` to output styled A4 printable snapshots of complete itineraries.
-- "Print View" route enabling native browser printing with page-break cleanups.
+## 🚀 Getting Started
 
-### ✅ Phase 9: Live Group Chat & Sharing
-- 6-character unique invitation codes generated automatically for each trip.
-- Dashboard invite code inputs enabling users to join travel groups as collaborators.
-- Real-time collaborative chat rooms styled with glassmorphism, supporting instant messaging synchronized via AJAX polling.
+### Prerequisites
+- Python 3.9+
+- MySQL server running locally or remotely
+- API keys for OpenRouter and OpenWeather
 
-### ✅ Phase 10: Language & Currency Converter
-- Live currency converters referencing public APIs (`open.er-api.com`) with 12-hour caching limits.
-- Dynamic conversion banners showing overall trip budgets and expenses in foreign denominations (USD, EUR, GBP, JPY, AED, etc.).
-- AI-powered travel translations converting customized phrases to destination languages, complete with phonetic pronunciation guides.
+### Installation
 
----
+```bash
+# 1. Clone the repository
+git clone https://github.com/shreyasTalwar/TravelMate-AI-Powered-Smart-Travel-Planner.git
+cd TravelMate-AI-Powered-Smart-Travel-Planner
 
-## 🛠️ Local Installation & Setup
+# 2. Install dependencies
+pip install -r requirements.txt
+```
 
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/shreyasTalwar/TravelMate-AI-Powered-Smart-Travel-Planner.git
-   cd TravelMate-AI-Powered-Smart-Travel-Planner
-   ```
+### Configuration
 
-2. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Create a `.env` file in the project root:
 
-3. **Configure Environment variables**:
-   Create a `.env` file in the root directory:
-   ```env
-   SECRET_KEY=your_secret_key
-   DATABASE_URL=mysql+pymysql://username:password@localhost:3306/travelmate
-   OPENROUTER_API_KEY=your_openrouter_api_key
-   OPENROUTER_MODEL=google/gemini-2.5-flash
-   OPENWEATHER_API_KEY=your_openweather_api_key
-   ```
+```env
+SECRET_KEY=your_secret_key
+DATABASE_URL=mysql+pymysql://username:password@localhost:3306/travelmate
+OPENROUTER_API_KEY=your_openrouter_api_key
+OPENROUTER_MODEL=google/gemini-2.5-flash
+OPENWEATHER_API_KEY=your_openweather_api_key
+```
 
-4. **Verify Database Setup**:
-   Creates the `travelmate` database and SQLAlchemy tables automatically:
-   ```bash
-   python verify_db.py
-   ```
+### Run
 
-5. **Start Flask Server**:
-   ```bash
-   python app.py
-   ```
-   Open `http://127.0.0.1:5000` in your browser.
+```bash
+# Create the database and tables
+python verify_db.py
+
+# Start the server
+python app.py
+```
+
+Then open **http://127.0.0.1:5000** in your browser.
+
+## 🗺️ Development Roadmap
+
+<details>
+<summary><b>Click to expand full phase-by-phase build history</b></summary>
+
+| Phase | Focus | Status |
+|---|---|---|
+| 0 | Environment setup, DB config, secure `.env` loading | ✅ |
+| 1 | Auth & foundation — CSRF, rate limiting, bcrypt, custom error pages | ✅ |
+| 2 | Dashboard & trip CRUD — budget aggregates, upcoming/past trips | ✅ |
+| 3 | AI itinerary generator — Gemini integration, versioned snapshots | ✅ |
+| 4 | Weather intelligence — geocoding, caching, rain-adaptive replanning | ✅ |
+| 5 | Smart maps — Leaflet + Overpass POIs with real-time filters | ✅ |
+| 6 | Budget planner — expense ledger, AI cost extraction, Chart.js views | ✅ |
+| 7 | Women's safety module — safety scores, helplines, Panic SOS | ✅ |
+| 8 | Offline PDF exporter — styled A4 export, print view | ✅ |
+| 9 | Live group chat & sharing — invite codes, AJAX-polled chat | ✅ |
+| 10 | Language & currency converter — live rates, AI phrase translation | ✅ |
+
+</details>
+
+## 📄 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## 🙋 Author
+
+**Shreyas Talwar**
+GitHub: [@shreyasTalwar](https://github.com/shreyasTalwar)
