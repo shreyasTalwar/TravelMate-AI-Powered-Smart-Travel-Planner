@@ -1,0 +1,11 @@
+{
+    "goa": "https://images.unsplash.com/photo-1685271552630-9bc169185566?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMDAyMjEyfDB8MXxzZWFyY2h8MXx8Z29hJTIwYmVhY2glMjBzdW5zZXR8ZW58MHwwfHx8MTc4NDQ2Nzk2NXww&ixlib=rb-4.1.0&q=80&w=1080",
+    "jaipur": "https://images.unsplash.com/photo-1603262110263-fb0112e7cc33?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMDAyMjEyfDB8MXxzZWFyY2h8MXx8amFpcHVyJTIwaGF3YSUyMG1haGFsfGVufDB8MHx8fDE3ODQ0Njc5NjZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+    "kerala": "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMDAyMjEyfDB8MXxzZWFyY2h8MXx8a2VyYWxhJTIwYmFja3dhdGVycyUyMGhvdXNlYm9hdHxlbnwwfDB8fHwxNzg0NDY3OTY2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+    "agra": "https://images.unsplash.com/photo-1564507592333-c60657eea523?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMDAyMjEyfDB8MXxzZWFyY2h8MXx8dGFqJTIwbWFoYWwlMjBhZ3JhfGVufDB8MHx8fDE3ODQ0Njc5Njd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+    "kashmir": "https://images.unsplash.com/photo-1715457573748-8e8a70b2c1be?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMDAyMjEyfDB8MXxzZWFyY2h8MXx8ZGFsJTIwbGFrZSUyMGthc2htaXJ8ZW58MHwwfHx8MTc4NDQ2Nzk2OHww&ixlib=rb-4.1.0&q=80&w=1080",
+    "ladakh": "https://images.unsplash.com/photo-1593118845043-359e5f628214?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMDAyMjEyfDB8MXxzZWFyY2h8MXx8cGFuZ29uZyUyMGxha2UlMjBsYWRha2h8ZW58MHwwfHx8MTc4NDQ2Nzk2OHww&ixlib=rb-4.1.0&q=80&w=1080",
+    "hampi": "https://images.unsplash.com/photo-1616606484004-5ef3cc46e39d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMDAyMjEyfDB8MXxzZWFyY2h8MXx8aGFtcGklMjBydWluc3xlbnwwfDB8fHwxNzg0NDY3OTY5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+    "rishikesh": "https://images.unsplash.com/photo-1718431108073-7f61fb5dfefb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMDAyMjEyfDB8MXxzZWFyY2h8MXx8cmlzaGlrZXNoJTIwcmFmdGluZ3xlbnwwfDB8fHwxNzg0NDY3OTcwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+    "darjeeling": "https://images.unsplash.com/photo-1721070025492-26368db1706f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMDAyMjEyfDB8MXxzZWFyY2h8MXx8ZGFyamVlbGluZyUyMHRlYSUyMGdhcmRlbnxlbnwwfDB8fHwxNzg0NDY3OTcwfDA&ixlib=rb-4.1.0&q=80&w=1080"
+}

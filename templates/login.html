@@ -2,39 +2,54 @@
 
 {% block title %}Log In - TravelMate{% endblock %}
 
+{% block extra_css %}
+<script src="https://cdn.tailwindcss.com"></script>
+{% endblock %}
+
 {% block content %}
-<div class="container">
-    <div class="card-auth">
-        <h2>Welcome Back</h2>
-        <p class="card-auth-sub">Don't have an account? <a href="{{ url_for('auth.register') }}">Sign Up</a></p>
+<div class="min-h-[calc(100vh-96px)] flex items-center justify-center p-4">
+    <div class="w-full max-w-5xl bg-white rounded-3xl shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
+        <!-- Left Image Panel -->
+        <div class="hidden md:block relative bg-cover bg-center" style="background-image: linear-gradient(rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.65)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80');">
+            <div class="absolute bottom-12 left-10 right-10 text-white space-y-3">
+                <h3 class="text-2xl font-bold tracking-tight">Your Next Adventure Awaits</h3>
+                <p class="text-sm text-white/90 leading-relaxed">Log in to sync your personalized day-by-day travel plans, budgets, safety intelligence, and live weather updates.</p>
+            </div>
+        </div>
         
-        <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next', '')) }}" novalidate>
-            {{ form.csrf_token }}
+        <!-- Right Form Panel -->
+        <div class="p-8 sm:p-12 flex flex-col justify-center bg-slate-50/50">
+            <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Welcome Back</h2>
+            <p class="text-sm text-slate-500 mt-2 mb-8">Don't have an account? <a href="{{ url_for('auth.register') }}" class="text-indigo-600 font-bold hover:text-indigo-700">Sign Up</a></p>
             
-            <!-- Email -->
-            <div class="form-group">
-                <label for="email" class="form-label">{{ form.email.label }}</label>
-                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="Enter your email") }}
-                {% for error in form.email.errors %}
-                    <div class="form-error">{{ error }}</div>
-                {% endfor %}
-            </div>
-            
-            <!-- Password -->
-            <div class="form-group">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <label for="password" class="form-label" style="margin-bottom: 0;">{{ form.password.label }}</label>
-                    <a href="{{ url_for('auth.forgot_password') }}" style="font-size: 0.85rem; color: var(--primary); font-weight: 500;">Forgot password?</a>
+            <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next', '')) }}" novalidate class="space-y-5">
+                {{ form.csrf_token }}
+                
+                <!-- Email -->
+                <div class="space-y-1.5">
+                    <label for="email" class="text-sm font-semibold text-slate-700">{{ form.email.label }}</label>
+                    {{ form.email(class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800 text-sm placeholder-slate-400" + (" border-red-500" if form.email.errors else ""), placeholder="Enter your email") }}
+                    {% for error in form.email.errors %}
+                        <div class="text-xs text-red-500 font-semibold">{{ error }}</div>
+                    {% endfor %}
                 </div>
-                {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="Enter your password", style="margin-top: 0.5rem;") }}
-                {% for error in form.password.errors %}
-                    <div class="form-error">{{ error }}</div>
-                {% endfor %}
-            </div>
-            
-            <!-- Submit Button -->
-            {{ form.submit(class="btn btn-primary btn-block") }}
-        </form>
+                
+                <!-- Password -->
+                <div class="space-y-1.5">
+                    <div class="flex justify-between items-center">
+                        <label for="password" class="text-sm font-semibold text-slate-700">{{ form.password.label }}</label>
+                        <a href="{{ url_for('auth.forgot_password') }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700">Forgot password?</a>
+                    </div>
+                    {{ form.password(class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-800 text-sm placeholder-slate-400" + (" border-red-500" if form.password.errors else ""), placeholder="Enter your password") }}
+                    {% for error in form.password.errors %}
+                        <div class="text-xs text-red-500 font-semibold">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Submit -->
+                {{ form.submit(class="w-full bg-slate-900 hover:bg-indigo-600 text-white font-bold py-3.5 rounded-xl transition-colors duration-200 cursor-pointer text-sm shadow-md mt-6") }}
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

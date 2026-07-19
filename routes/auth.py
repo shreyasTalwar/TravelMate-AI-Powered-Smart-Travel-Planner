@@ -70,7 +70,7 @@ def login():
 def logout():
     session.clear()
     flash('You have been logged out successfully.', 'info')
-    return redirect(url_for('landing'))
+    return redirect(url_for('explore'))
 
 @auth_bp.route('/profile', methods=['GET', 'POST'])
 @login_required

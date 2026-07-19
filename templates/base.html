@@ -31,7 +31,7 @@
     <!-- Header Navigation -->
     <header>
         <div class="container navbar">
-            <a href="{{ url_for('landing') }}" class="logo" id="brand-logo">
+            <a href="{{ url_for('explore') }}" class="logo" id="brand-logo">
                 <span>✈️</span> TravelMate
             </a>
             
@@ -42,7 +42,7 @@
             </button>
             
             <ul class="nav-links" id="nav-links">
-                <li><a href="{{ url_for('landing') }}" class="nav-link">Home</a></li>
+                <li><a href="{{ url_for('cover') }}" class="nav-link">Cover</a></li>
                 {% if session.get('user_id') %}
                     <li><a href="{{ url_for('trips.dashboard') }}" class="nav-link">Dashboard</a></li>
                     <li><a href="{{ url_for('auth.profile') }}" class="nav-link">Profile</a></li>

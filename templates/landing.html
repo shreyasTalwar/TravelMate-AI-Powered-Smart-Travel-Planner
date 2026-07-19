@@ -2,121 +2,558 @@
 
 {% block title %}TravelMate - Plan Your Next Adventure Instantly with AI{% endblock %}
 
+{% block extra_css %}
+<!-- Tailwind CSS for rich grid layout and premium aesthetics -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- FontAwesome for iconography -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<style>
+    /* Prevent Tailwind from overriding global layout defaults from base.html */
+    header, footer {
+        font-family: var(--font-heading);
+    }
+    body {
+        font-family: var(--font-body);
+        color: var(--dark);
+        background: #f8fafc;
+    }
+    .custom-transition {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .destination-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    /* Auto-complete suggestions styling */
+    .suggestions-box {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    .suggestion-item {
+        padding: 0.75rem 1.25rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .suggestion-item:hover {
+        background-color: #f1f5f9;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fadeIn {
+        animation: fadeInUp 0.55s ease forwards;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Hero Section -->
-<section class="hero">
-    <div class="container">
-        <span class="hero-tag">🌟 Now powered by Gemini AI</span>
-        <h1>Stop Planning. <br><span>Start Traveling.</span></h1>
-        <p>Get a complete, personalized day-by-day travel itinerary with smart local weather adjustments, interactive maps, safety ratings, and dynamic budgets in under 10 seconds.</p>
-        <div class="hero-actions">
-            {% if session.get('user_id') %}
-                <a href="{{ url_for('auth.profile') }}" class="btn btn-primary btn-lg">Go to Profile</a>
-                <a href="#" class="btn btn-outline btn-lg">Plan a Trip (Phase 2)</a>
-            {% else %}
-                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">Get Started Free</a>
-                <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-lg">Sign In</a>
-            {% endif %}
+<section class="relative h-auto py-24 flex items-center justify-center bg-cover bg-center text-white border-b border-gray-100" 
+         style="background-image: linear-gradient(180deg, rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.75)), url('https://images.unsplash.com/photo-1573790387438-4da905039392?auto=format&fit=crop&w=2000&q=80');">
+    <div class="container mx-auto px-4 text-center max-w-4xl">
+        <h1 class="text-4xl md:text-6xl font-display font-extrabold mb-4 tracking-tight text-white leading-tight">
+            Stop Planning. <br><span class="text-indigo-400">Start Traveling.</span>
+        </h1> 
+        <p class="text-lg md:text-xl text-white/85 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Get a complete, personalized day-by-day travel itinerary with smart local weather adaptations, interactive maps, safety ratings, and dynamic budgets in under 10 seconds.
+        </p>
+        
+        <!-- Search & Planner Form: pill-shaped, radius-full -->
+        <form action="{{ url_for('trips.create') }}" method="GET" class="relative max-w-2xl mx-auto mb-10">
+            <label for="hero-search-input" class="sr-only">Destination Search</label> 
+            <input type="text" name="dest" id="hero-search-input" placeholder="Where do you want to go next, boss? (e.g. Goa, Tokyo, Paris...)" 
+                   class="w-full px-6 py-4 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-md text-lg pr-[4.25rem] bg-white text-gray-800 placeholder-gray-400" 
+                   autocomplete="off" required>
+            <button type="submit" id="hero-search-button" aria-label="Search" 
+                    class="absolute right-1.5 top-1.5 bottom-1.5 flex items-center justify-center w-14 text-white bg-indigo-600 hover:bg-indigo-700 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">
+                <i class="fas fa-arrow-right text-lg"></i>
+            </button>
+        </form>
+        
+        <!-- Category Action Shortcuts: rounded-2xl outer, rounded-xl icon well -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto">
+            <a href="{{ url_for('trips.create') }}" class="group block bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-indigo-500 hover:-translate-y-0.5 transition-all duration-200 text-center">
+                <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 mb-2">
+                    <i class="fas fa-route text-lg"></i>
+                </span>
+                <span class="block text-sm font-semibold text-gray-700 group-hover:text-indigo-600">Plan New Trip</span>
+            </a>
+            <a href="{{ url_for('trips.dashboard') }}" class="group block bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-indigo-500 hover:-translate-y-0.5 transition-all duration-200 text-center">
+                <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 mb-2">
+                    <i class="fas fa-columns text-lg"></i>
+                </span>
+                <span class="block text-sm font-semibold text-gray-700 group-hover:text-indigo-600">My Dashboard</span>
+            </a>
+            <a href="{{ url_for('auth.profile') }}" class="group block bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-indigo-500 hover:-translate-y-0.5 transition-all duration-200 text-center">
+                <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 mb-2">
+                    <i class="fas fa-user-circle text-lg"></i>
+                </span>
+                <span class="block text-sm font-semibold text-gray-700 group-hover:text-indigo-600">Edit Profile</span>
+            </a>
+            <a href="{{ url_for('trips.dashboard') }}" class="group block bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-indigo-500 hover:-translate-y-0.5 transition-all duration-200 text-center">
+                <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 mb-2">
+                    <i class="fas fa-wallet text-lg"></i>
+                </span>
+                <span class="block text-sm font-semibold text-gray-700 group-hover:text-indigo-600">Budget Tracker</span>
+            </a>
+        </div>
+        
+    </div>
+</section>
+
+<!-- Escapes & Destinations -->
+<section id="destinations" class="py-24 bg-gradient-to-b from-slate-50 to-white">
+    <div class="max-w-7xl mx-auto px-6 lg:px-10">
+
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
+            <div class="max-w-2xl">
+                <p class="text-sm font-semibold uppercase tracking-[0.24em] text-indigo-600 mb-3">
+                    More escapes
+                </p>
+                <h2 class="text-4xl md:text-5xl font-bold tracking-tight text-slate-900">
+                    Explore more unforgettable destinations
+                </h2>
+                <p class="mt-4 text-slate-600 leading-7 text-base">
+                    From iconic monuments and mountain valleys to spiritual towns and heritage ruins, discover destinations tailored for every travel mood.
+                </p>
+            </div>
+
+            <div class="hidden md:flex items-center gap-3 text-sm text-slate-500">
+                <span class="h-px w-16 bg-slate-300"></span>
+                Curated across India
+            </div>
+        </div>
+
+        <!-- First Grid (Goa, Jaipur, Kerala) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            <!-- Destination Card 1 -->
+            <article class="group relative overflow-hidden rounded-[28px] bg-white/95 backdrop-blur-sm border border-white/70 shadow-[0_16px_50px_rgba(15,23,42,0.08)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
+                <div class="relative h-[420px] overflow-hidden">
+                    <img src="{{ unsplash_urls.goa }}" alt="Goa Beaches" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                    <div class="absolute top-4 left-4">
+                        <span class="inline-flex items-center rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-800 shadow-sm">
+                            Western India
+                        </span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
+                        <div class="mb-3 flex items-center gap-2 text-sm text-white/80">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" />
+                                <circle cx="12" cy="10" r="2.5" />
+                            </svg>
+                            <span>Coastal paradise</span>
+                        </div>
+                        <h2 class="text-3xl font-bold tracking-tight">Sunny Goa</h2>
+                        <p class="mt-2 max-w-sm text-sm leading-6 text-white/85 line-clamp-2">
+                            Relax on sandy beaches, explore local Portuguese cathedrals, and experience vibrant coastal nightlife.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between gap-4 p-5 text-left">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Best for</p>
+                        <p class="mt-1 text-sm font-medium text-slate-700">Beaches • Sunsets • Nightlife</p>
+                    </div>
+                    <a href="{{ url_for('trips.create', dest='Goa') }}" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-indigo-600">
+                        Plan trip <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </article>
+            
+            <!-- Destination Card 2 -->
+            <article class="group relative overflow-hidden rounded-[28px] bg-white/95 backdrop-blur-sm border border-white/70 shadow-[0_16px_50px_rgba(15,23,42,0.08)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
+                <div class="relative h-[420px] overflow-hidden">
+                    <img src="{{ unsplash_urls.jaipur }}" alt="Jaipur Palace" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                    <div class="absolute top-4 left-4">
+                        <span class="inline-flex items-center rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-800 shadow-sm">
+                            Rajasthan
+                        </span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
+                        <div class="mb-3 flex items-center gap-2 text-sm text-white/80">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" />
+                                <circle cx="12" cy="10" r="2.5" />
+                            </svg>
+                            <span>The Pink City</span>
+                        </div>
+                        <h2 class="text-3xl font-bold tracking-tight">Royal Jaipur</h2>
+                        <p class="mt-2 max-w-sm text-sm leading-6 text-white/85 line-clamp-2">
+                            Discover historic forts, royal palaces, pink sandstone architecture, and traditional bazaar crafts.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between gap-4 p-5 text-left">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Best for</p>
+                        <p class="mt-1 text-sm font-medium text-slate-700">History • Heritage • Crafts</p>
+                    </div>
+                    <a href="{{ url_for('trips.create', dest='Jaipur') }}" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-indigo-600">
+                        Plan trip <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </article>
+            
+            <!-- Destination Card 3 -->
+            <article class="group relative overflow-hidden rounded-[28px] bg-white/95 backdrop-blur-sm border border-white/70 shadow-[0_16px_50px_rgba(15,23,42,0.08)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
+                <div class="relative h-[420px] overflow-hidden">
+                    <img src="{{ unsplash_urls.kerala }}" alt="Kerala Backwaters" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                    <div class="absolute top-4 left-4">
+                        <span class="inline-flex items-center rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-800 shadow-sm">
+                            Southern India
+                        </span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
+                        <div class="mb-3 flex items-center gap-2 text-sm text-white/80">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" />
+                                <circle cx="12" cy="10" r="2.5" />
+                            </svg>
+                            <span>God's Own Country</span>
+                        </div>
+                        <h2 class="text-3xl font-bold tracking-tight">Kerala Canals</h2>
+                        <p class="mt-2 max-w-sm text-sm leading-6 text-white/85 line-clamp-2">
+                            Cruise through quiet, palm-fringed backwater channels on a traditional, peaceful floating houseboat.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between gap-4 p-5 text-left">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Best for</p>
+                        <p class="mt-1 text-sm font-medium text-slate-700">Nature • Wellness • Cruising</p>
+                    </div>
+                    <a href="{{ url_for('trips.create', dest='Kerala') }}" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-indigo-600">
+                        Plan trip <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </article>
+        </div>
+
+        <!-- Extra Destinations Grid (hidden by default) -->
+        <div id="moreDestinationsGrid" class="hidden grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mt-8">
+            <!-- Destination Card 4 -->
+            <article class="group relative overflow-hidden rounded-[28px] bg-white/95 backdrop-blur-sm border border-white/70 shadow-[0_16px_50px_rgba(15,23,42,0.08)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
+                <div class="relative h-[420px] overflow-hidden">
+                    <img src="{{ unsplash_urls.agra }}" alt="Agra Taj Mahal" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                    <div class="absolute top-4 left-4">
+                        <span class="inline-flex items-center rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-800 shadow-sm">
+                            Uttar Pradesh
+                        </span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
+                        <div class="mb-3 flex items-center gap-2 text-sm text-white/80">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" />
+                                <circle cx="12" cy="10" r="2.5" />
+                            </svg>
+                            <span>City of the Taj</span>
+                        </div>
+                        <h2 class="text-3xl font-bold tracking-tight">Taj Mahal, Agra</h2>
+                        <p class="mt-2 max-w-sm text-sm leading-6 text-white/85 line-clamp-2">
+                            Marvel at the iconic white marble wonder, tour historic gardens, and explore the red sandstone Fort.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between gap-4 p-5 text-left">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Best for</p>
+                        <p class="mt-1 text-sm font-medium text-slate-700">Heritage • Architecture • History</p>
+                    </div>
+                    <a href="{{ url_for('trips.create', dest='Agra') }}" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-indigo-600">
+                        Plan trip <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </article>
+
+            <!-- Destination Card 5 -->
+            <article class="group relative overflow-hidden rounded-[28px] bg-white/95 backdrop-blur-sm border border-white/70 shadow-[0_16px_50px_rgba(15,23,42,0.08)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
+                <div class="relative h-[420px] overflow-hidden">
+                    <img src="{{ unsplash_urls.kashmir }}" alt="Kashmir Valley" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                    <div class="absolute top-4 left-4">
+                        <span class="inline-flex items-center rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-800 shadow-sm">
+                            Northern India
+                        </span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
+                        <div class="mb-3 flex items-center gap-2 text-sm text-white/80">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" />
+                                <circle cx="12" cy="10" r="2.5" />
+                            </svg>
+                            <span>Paradise on Earth</span>
+                        </div>
+                        <h2 class="text-3xl font-bold tracking-tight">Mystic Kashmir</h2>
+                        <p class="mt-2 max-w-sm text-sm leading-6 text-white/85 line-clamp-2">
+                            Experience flower meadows, snow-capped valleys, serene mountain vistas, and Dal Lake houseboat rides.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between gap-4 p-5 text-left">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Best for</p>
+                        <p class="mt-1 text-sm font-medium text-slate-700">Nature • Scenic • Houseboats</p>
+                    </div>
+                    <a href="{{ url_for('trips.create', dest='Kashmir') }}" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-indigo-600">
+                        Plan trip <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </article>
+
+            <!-- Destination Card 6 -->
+            <article class="group relative overflow-hidden rounded-[28px] bg-white/95 backdrop-blur-sm border border-white/70 shadow-[0_16px_50px_rgba(15,23,42,0.08)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
+                <div class="relative h-[420px] overflow-hidden">
+                    <img src="{{ unsplash_urls.ladakh }}" alt="Ladakh Mountains" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                    <div class="absolute top-4 left-4">
+                        <span class="inline-flex items-center rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-800 shadow-sm">
+                            Leh District
+                        </span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
+                        <div class="mb-3 flex items-center gap-2 text-sm text-white/80">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" />
+                                <circle cx="12" cy="10" r="2.5" />
+                            </svg>
+                            <span>Land of High Passes</span>
+                        </div>
+                        <h2 class="text-3xl font-bold tracking-tight">Leh Ladakh</h2>
+                        <p class="mt-2 max-w-sm text-sm leading-6 text-white/85 line-clamp-2">
+                            Adventure through high-altitude desert roads, pristine blue lakes, and ancient Buddhist monasteries.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between gap-4 p-5 text-left">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Best for</p>
+                        <p class="mt-1 text-sm font-medium text-slate-700">Adventure • Trekking • Lakes</p>
+                    </div>
+                    <a href="{{ url_for('trips.create', dest='Ladakh') }}" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-indigo-600">
+                        Plan trip <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </article>
+
+            <!-- Destination Card 7 -->
+            <article class="group relative overflow-hidden rounded-[28px] bg-white/95 backdrop-blur-sm border border-white/70 shadow-[0_16px_50px_rgba(15,23,42,0.08)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
+                <div class="relative h-[420px] overflow-hidden">
+                    <img src="{{ unsplash_urls.hampi }}" alt="Hampi Ruins" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                    <div class="absolute top-4 left-4">
+                        <span class="inline-flex items-center rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-800 shadow-sm">
+                            Karnataka
+                        </span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
+                        <div class="mb-3 flex items-center gap-2 text-sm text-white/80">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" />
+                                <circle cx="12" cy="10" r="2.5" />
+                            </svg>
+                            <span>Vijayanagara Ruins</span>
+                        </div>
+                        <h2 class="text-3xl font-bold tracking-tight">Historic Hampi</h2>
+                        <p class="mt-2 max-w-sm text-sm leading-6 text-white/85 line-clamp-2">
+                            Walk through the boulder-strewn landscape, ornate stone structures, and remnants of the Vijayanagara Empire.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between gap-4 p-5 text-left">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Best for</p>
+                        <p class="mt-1 text-sm font-medium text-slate-700">Ancient Ruins • Landscapes</p>
+                    </div>
+                    <a href="{{ url_for('trips.create', dest='Hampi') }}" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-indigo-600">
+                        Plan trip <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </article>
+
+            <!-- Destination Card 8 -->
+            <article class="group relative overflow-hidden rounded-[28px] bg-white/95 backdrop-blur-sm border border-white/70 shadow-[0_16px_50px_rgba(15,23,42,0.08)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
+                <div class="relative h-[420px] overflow-hidden">
+                    <img src="{{ unsplash_urls.rishikesh }}" alt="Rishikesh Ganges" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                    <div class="absolute top-4 left-4">
+                        <span class="inline-flex items-center rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-800 shadow-sm">
+                            Uttarakhand
+                        </span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
+                        <div class="mb-3 flex items-center gap-2 text-sm text-white/80">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" />
+                                <circle cx="12" cy="10" r="2.5" />
+                            </svg>
+                            <span>Foothills of the Himalayas</span>
+                        </div>
+                        <h2 class="text-3xl font-bold tracking-tight">Rishikesh</h2>
+                        <p class="mt-2 max-w-sm text-sm leading-6 text-white/85 line-clamp-2">
+                            Wake up by the Ganga, unwind in peaceful ashrams, and add an adrenaline rush with rafting or bungee jumping.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between gap-4 p-5 text-left">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Best for</p>
+                        <p class="mt-1 text-sm font-medium text-slate-700">Spirituality • Rafting • Wellness</p>
+                    </div>
+                    <a href="{{ url_for('trips.create', dest='Rishikesh') }}" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-indigo-600">
+                        Plan trip <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </article>
+
+            <!-- Destination Card 9 -->
+            <article class="group relative overflow-hidden rounded-[28px] bg-white/95 backdrop-blur-sm border border-white/70 shadow-[0_16px_50px_rgba(15,23,42,0.08)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
+                <div class="relative h-[420px] overflow-hidden">
+                    <img src="{{ unsplash_urls.darjeeling }}" alt="Darjeeling Hills" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                    <div class="absolute top-4 left-4">
+                        <span class="inline-flex items-center rounded-full bg-white/90 backdrop-blur-md px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-800 shadow-sm">
+                            West Bengal
+                        </span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
+                        <div class="mb-3 flex items-center gap-2 text-sm text-white/80">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z" />
+                                <circle cx="12" cy="10" r="2.5" />
+                            </svg>
+                            <span>Queen of the Hills</span>
+                        </div>
+                        <h2 class="text-3xl font-bold tracking-tight">Darjeeling</h2>
+                        <p class="mt-2 max-w-sm text-sm leading-6 text-white/85 line-clamp-2">
+                            Enjoy panoramic views of Mount Kanchenjunga, lush tea plantations, and ride the classic Himalayan Toy Train.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between gap-4 p-5 text-left">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Best for</p>
+                        <p class="mt-1 text-sm font-medium text-slate-700">Hill Station • Tea Gardens • Scenic</p>
+                    </div>
+                    <a href="{{ url_for('trips.create', dest='Darjeeling') }}" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-indigo-600">
+                        Plan trip <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </article>
+        </div>
+
+        <div class="text-center mt-12">
+            <button
+                id="viewAllDestinationsBtn"
+                type="button"
+                class="inline-flex items-center gap-3 rounded-full bg-slate-900 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-600"
+            >
+                <span>View All Destinations</span>
+                <span id="destinationsArrow" aria-hidden="true">↓</span>
+            </button>
         </div>
     </div>
 </section>
 
-<!-- Features Section -->
-<section class="features">
-    <div class="container">
-        <div class="section-title">
-            <h2>Everything You Need in One Place</h2>
-            <p>Ditch the dozens of open tabs. We handle all travel logistics for you.</p>
-        </div>
+
+
+<!-- Travelers Feedback -->
+<section class="py-16 bg-gray-50 border-b border-gray-100">
+    <div class="container mx-auto px-4">
+        <h2 class="text-3xl font-display font-bold mb-2 text-center text-gray-800">Traveler Feedback</h2>
+        <p class="text-lg text-center mb-12 text-gray-500">Genuine reviews from explorers using TravelMate</p>
         
-        <div class="features-grid">
-            <!-- Feature 1 -->
-            <div class="feature-card">
-                <div class="feature-icon">🤖</div>
-                <h3>AI Itinerary Generator</h3>
-                <p>Personalized morning, afternoon, and evening activities based on budget, duration, and interests.</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Review 1 -->
+            <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between">
+                <p class="text-gray-600 text-sm leading-relaxed mb-6 italic">"TravelMate generated a perfect 5-day Tokyo itinerary. When it rained on Wednesday, it updated my beach trips to museum visits instantly!"</p>
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold mr-3">JD</div>
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-sm">Jessica Davis</h4>
+                        <p class="text-gray-400 text-xs">Solo Backpacker</p>
+                    </div>
+                </div>
             </div>
             
-            <!-- Feature 2 -->
-            <div class="feature-card">
-                <div class="feature-icon">🌦️</div>
-                <h3>Weather Intelligence</h3>
-                <p>Live forecast syncing. The AI updates your itinerary on the fly if rain or extreme weather is detected.</p>
+            <!-- Review 2 -->
+            <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between">
+                <p class="text-gray-600 text-sm leading-relaxed mb-6 italic">"The safety features and emergency contacts gave me peace of mind traveling through remote areas. Absolutely indispensable tool!"</p>
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold mr-3">AS</div>
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-sm">Aarav Sharma</h4>
+                        <p class="text-gray-400 text-xs">Student Traveler</p>
+                    </div>
+                </div>
             </div>
             
-            <!-- Feature 3 -->
-            <div class="feature-card">
-                <div class="feature-icon">🗺️</div>
-                <h3>Smart Map Navigation</h3>
-                <p>Interactive mapping of hotels, local restaurants, emergency zones, and routing details powered by OpenStreetMap.</p>
-            </div>
-            
-            <!-- Feature 4 -->
-            <div class="feature-card">
-                <div class="feature-icon">🛡️</div>
-                <h3>Women's Safety Module</h3>
-                <p>AI safety tips, safety indexes, unsafe area warnings, and instant localized emergency contacts.</p>
-            </div>
-            
-            <!-- Feature 5 -->
-            <div class="feature-card">
-                <div class="feature-icon">💳</div>
-                <h3>Budget & Expense Planner</h3>
-                <p>Track costs, categorize activities, analyze spending graphs, and split expenses seamlessly.</p>
-            </div>
-            
-            <!-- Feature 6 -->
-            <div class="feature-card">
-                <div class="feature-icon">👥</div>
-                <h3>Travel Buddy Matcher</h3>
-                <p>Find compatible travelers going to the same destinations during your exact travel dates.</p>
+            <!-- Review 3 -->
+            <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between">
+                <p class="text-gray-600 text-sm leading-relaxed mb-6 italic">"Loved the budget breakdown chart! It made managing expenses for our 4-person family trip extremely simple and transparent."</p>
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold mr-3">ML</div>
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-sm">Mark Lee</h4>
+                        <p class="text-gray-400 text-xs">Family Planner</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Testimonials Section -->
-<section class="testimonials">
-    <div class="container">
-        <div class="section-title">
-            <h2>Loved by Explorers</h2>
-            <p>See how travelers are utilizing TravelMate to experience hassle-free adventures.</p>
-        </div>
-        
-        <div class="testimonials-grid">
-            <div class="testimonial-card">
-                <p class="testimonial-text">"TravelMate generated a perfect 5-day Tokyo itinerary. When it rained on Wednesday, it updated my beach trips to museum visits instantly!"</p>
-                <div class="testimonial-user">
-                    <div class="testimonial-avatar">JD</div>
-                    <div class="testimonial-info">
-                        <h4>Jessica Davis</h4>
-                        <p>Solo Backpacker</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="testimonial-card">
-                <p class="testimonial-text">"The safety features and emergency contacts gave me peace of mind traveling through remote areas. Absolutely indispensable tool!"</p>
-                <div class="testimonial-user">
-                    <div class="testimonial-avatar">AS</div>
-                    <div class="testimonial-info">
-                        <h4>Aarav Sharma</h4>
-                        <p>Student Traveler</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="testimonial-card">
-                <p class="testimonial-text">"Loved the budget breakdown chart! It made managing expenses for our 4-person family trip extremely simple and transparent."</p>
-                <div class="testimonial-user">
-                    <div class="testimonial-avatar">ML</div>
-                    <div class="testimonial-info">
-                        <h4>Mark Lee</h4>
-                        <p>Family Travel Planner</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- Newsletter Subscription -->
+<section class="py-16 bg-gray-900 text-white">
+    <div class="container mx-auto px-4 text-center max-w-xl">
+        <h2 class="text-2xl md:text-3xl font-display font-bold mb-4">Stay Inspired</h2>
+        <p class="text-gray-400 mb-8 text-sm md:text-base leading-relaxed">Subscribe to our newsletter for custom travel tips, safety recommendations, and exclusive AI itineraries, boss.</p>
+        <form onsubmit="event.preventDefault(); alert('Subscribed successfully, boss!');" class="flex flex-col sm:flex-row gap-3">
+            <input type="email" placeholder="Your email address" required class="flex-grow px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-800 text-sm">
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm">Subscribe</button>
+        </form>
+        <p class="text-xs text-gray-500 mt-4">By subscribing, you consent to receive periodic travel alerts and guides.</p>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const viewAllBtn = document.getElementById('viewAllDestinationsBtn');
+        const moreGrid = document.getElementById('moreDestinationsGrid');
+        const arrow = document.getElementById('destinationsArrow');
+
+        if (viewAllBtn && moreGrid) {
+            viewAllBtn.addEventListener('click', function() {
+                const isHidden = moreGrid.classList.contains('hidden');
+
+                if (isHidden) {
+                    moreGrid.classList.remove('hidden');
+                    moreGrid.classList.add('animate-fadeIn');
+                    viewAllBtn.querySelector('span').textContent = 'Show Less Destinations';
+                    if (arrow) arrow.textContent = '↑';
+                } else {
+                    moreGrid.classList.add('hidden');
+                    moreGrid.classList.remove('animate-fadeIn');
+                    viewAllBtn.querySelector('span').textContent = 'View All Destinations';
+                    if (arrow) arrow.textContent = '↓';
+                    moreGrid.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}
