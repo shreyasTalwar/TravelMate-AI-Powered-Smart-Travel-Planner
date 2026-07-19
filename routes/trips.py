@@ -474,3 +474,76 @@ def safety_alert(trip_id):
         "success": True,
         "message": "SOS Panic Alert broadcasted successfully to your emergency contacts!"
     })
+
+@trips_bp.route('/trips/<int:trip_id>/export-pdf')
+@login_required
+def export_pdf(trip_id):
+    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    
+    # Retrieve all components
+    itinerary = Itinerary.query.filter_by(trip_id=trip.id).order_by(Itinerary.version.desc()).first()
+    expenses = Expense.query.filter_by(trip_id=trip.id).order_by(Expense.date.asc()).all()
+    
+    destination_key = trip.destination.strip().lower()
+    safety = SafetyAssessment.query.filter_by(destination=destination_key).first()
+    
+    total_spent = sum(float(exp.amount) for exp in expenses)
+    remaining_balance = float(trip.budget) - total_spent
+    
+    # Render HTML template to string
+    html = render_template(
+        'trips/export_pdf.html',
+        trip=trip,
+        itinerary=itinerary,
+        expenses=expenses,
+        safety=safety,
+        total_spent=total_spent,
+        remaining_balance=remaining_balance,
+        today_date=date.today().strftime('%d %b %Y')
+    )
+    
+    from xhtml2pdf import pisa
+    import io
+    
+    # Generate PDF byte stream using pisa
+    pdf_stream = io.BytesIO()
+    pisa_status = pisa.CreatePDF(io.StringIO(html), dest=pdf_stream)
+    
+    if pisa_status.err:
+        # Fallback to browser print route if compilation fails
+        flash("PDF compilation failed on server. Redirected to browser print layout.", "warning")
+        return redirect(url_for('trips.print_itinerary', trip_id=trip.id))
+        
+    pdf_stream.seek(0)
+    
+    response = make_response(pdf_stream.read())
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=itinerary_trip_{trip.id}_{trip.destination.lower()}.pdf'
+    return response
+
+@trips_bp.route('/trips/<int:trip_id>/print')
+@login_required
+def print_itinerary(trip_id):
+    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    
+    # Retrieve all components
+    itinerary = Itinerary.query.filter_by(trip_id=trip.id).order_by(Itinerary.version.desc()).first()
+    expenses = Expense.query.filter_by(trip_id=trip.id).order_by(Expense.date.asc()).all()
+    
+    destination_key = trip.destination.strip().lower()
+    safety = SafetyAssessment.query.filter_by(destination=destination_key).first()
+    
+    total_spent = sum(float(exp.amount) for exp in expenses)
+    remaining_balance = float(trip.budget) - total_spent
+    
+    return render_template(
+        'trips/export_pdf.html',
+        trip=trip,
+        itinerary=itinerary,
+        expenses=expenses,
+        safety=safety,
+        total_spent=total_spent,
+        remaining_balance=remaining_balance,
+        today_date=date.today().strftime('%d %b %Y'),
+        auto_print=True
+    )
