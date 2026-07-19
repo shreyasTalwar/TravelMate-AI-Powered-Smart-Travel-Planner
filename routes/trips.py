@@ -1,7 +1,7 @@
 from datetime import date, datetime
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app, jsonify, make_response
 from extensions import db
-from models import Trip, User, Itinerary
+from models import Trip, User, Itinerary, Expense
 from routes.forms import TripForm
 from utils.decorators import login_required
 from services.ai import generate_itinerary_data, adapt_itinerary_for_weather
@@ -277,3 +277,134 @@ def get_trip_map_data(trip_id):
     except Exception as e:
         current_app.logger.error(f"Error fetching map data: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+@trips_bp.route('/trips/<int:trip_id>/budget', methods=['GET'])
+@login_required
+def budget(trip_id):
+    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    
+    # Retrieve all manual expenses
+    expenses = Expense.query.filter_by(trip_id=trip.id).order_by(Expense.date.desc()).all()
+    
+    # Sum up manual expenses grouped by category
+    categories = ['Hotel', 'Transport', 'Food', 'Activities', 'Shopping', 'Emergency Fund']
+    spent_by_category = {cat: 0.0 for cat in categories}
+    total_spent = 0.0
+    for exp in expenses:
+        if exp.category in spent_by_category:
+            spent_by_category[exp.category] += float(exp.amount)
+        total_spent += float(exp.amount)
+        
+    remaining_balance = float(trip.budget) - total_spent
+    
+    # Parse active itinerary to extract AI estimates
+    itinerary = Itinerary.query.filter_by(trip_id=trip.id).order_by(Itinerary.version.desc()).first()
+    ai_estimates = {cat: 0.0 for cat in categories}
+    ai_estimated_total = 0.0
+    
+    if itinerary and 'days' in itinerary.ai_itinerary:
+        days = itinerary.ai_itinerary['days']
+        for day in days:
+            # 1. Activities (sum of morning, afternoon, evening slots)
+            slots = day.get('slots', {})
+            for slot_key in ['morning', 'afternoon', 'evening']:
+                slot = slots.get(slot_key, {})
+                ai_estimates['Activities'] += float(slot.get('cost', 0.0))
+                
+            # 2. Transport (transportation cost)
+            trans = day.get('transportation', {})
+            ai_estimates['Transport'] += float(trans.get('cost', 0.0))
+            
+            # 3. Food (dining recommendations cost per person * travelers count)
+            rests = day.get('restaurants', [])
+            for rest in rests:
+                cost_pp = float(rest.get('estimated_cost_per_person', 0.0))
+                ai_estimates['Food'] += cost_pp * trip.travellers
+                
+        ai_estimated_total = sum(ai_estimates.values())
+        
+    return render_template(
+        'trips/budget.html',
+        trip=trip,
+        expenses=expenses,
+        spent_by_category=spent_by_category,
+        total_spent=total_spent,
+        remaining_balance=remaining_balance,
+        ai_estimates=ai_estimates,
+        ai_estimated_total=ai_estimated_total,
+        categories=categories
+    )
+
+@trips_bp.route('/trips/<int:trip_id>/budget/add', methods=['POST'])
+@login_required
+def add_expense(trip_id):
+    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    
+    category = request.form.get('category')
+    amount = request.form.get('amount')
+    description = request.form.get('description', '').strip()
+    date_str = request.form.get('date')
+    
+    if not category or not amount:
+        flash("Category and Amount are required.", "danger")
+        return redirect(url_for('trips.budget', trip_id=trip.id))
+        
+    try:
+        expense_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else datetime.utcnow().date()
+        expense = Expense(
+            trip_id=trip.id,
+            category=category,
+            amount=float(amount),
+            description=description if description else None,
+            date=expense_date
+        )
+        db.session.add(expense)
+        db.session.commit()
+        flash("Expense logged successfully!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Failed to log expense: {str(e)}", "danger")
+        current_app.logger.error(f"Add Expense Error: {str(e)}")
+        
+    return redirect(url_for('trips.budget', trip_id=trip.id))
+
+@trips_bp.route('/trips/<int:trip_id>/budget/delete/<int:expense_id>', methods=['POST'])
+@login_required
+def delete_expense(trip_id, expense_id):
+    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    expense = Expense.query.filter_by(id=expense_id, trip_id=trip.id).first_or_404()
+    
+    try:
+        db.session.delete(expense)
+        db.session.commit()
+        flash("Expense entry removed.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Failed to delete expense: {str(e)}", "danger")
+        current_app.logger.error(f"Delete Expense Error: {str(e)}")
+        
+    return redirect(url_for('trips.budget', trip_id=trip.id))
+
+@trips_bp.route('/trips/<int:trip_id>/budget/export', methods=['GET'])
+@login_required
+def export_budget(trip_id):
+    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    expenses = Expense.query.filter_by(trip_id=trip.id).order_by(Expense.date.asc()).all()
+    
+    import io
+    import csv
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write headers
+    writer.writerow(['Date', 'Category', 'Description', 'Amount (INR)'])
+    
+    # Write entries
+    for exp in expenses:
+        writer.writerow([exp.date.strftime('%Y-%m-%d'), exp.category, exp.description or '', float(exp.amount)])
+        
+    response = make_response(output.getvalue())
+    response.headers["Content-Disposition"] = f"attachment; filename=budget_trip_{trip.id}_{trip.destination.lower()}.csv"
+    response.headers["Content-type"] = "text/csv"
+    return response
