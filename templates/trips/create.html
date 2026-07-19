@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Plan New Trip - TravelMate{% endblock %}
+
+{% block content %}
+<div class="container" style="margin-top: 4rem; margin-bottom: 5rem;">
+    <div style="max-width: 650px; margin: 0 auto; background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 3rem; box-shadow: var(--shadow-xl);">
+        <h2 style="font-size: 2rem; margin-bottom: 0.5rem; text-align: center;">Plan Your Journey</h2>
+        <p style="color: var(--gray-600); text-align: center; margin-bottom: 2.5rem; font-size: 0.95rem;">Enter your travel specs and let us construct the perfect itinerary.</p>
+        
+        <form method="POST" action="{{ url_for('trips.create') }}" novalidate>
+            {{ form.csrf_token }}
+            
+            <!-- Destination -->
+            <div class="form-group">
+                <label for="destination" class="form-label">{{ form.destination.label }}</label>
+                {{ form.destination(class="form-control" + (" is-invalid" if form.destination.errors else ""), placeholder="e.g. Mumbai, France, Tokyo") }}
+                {% for error in form.destination.errors %}
+                    <div class="form-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+            
+            <!-- Budget & Travelers Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="form-group">
+                    <label for="budget" class="form-label">{{ form.budget.label }}</label>
+                    {{ form.budget(class="form-control" + (" is-invalid" if form.budget.errors else ""), placeholder="e.g. 50000") }}
+                    {% for error in form.budget.errors %}
+                        <div class="form-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="travellers" class="form-label">{{ form.travellers.label }}</label>
+                    {{ form.travellers(class="form-control" + (" is-invalid" if form.travellers.errors else "")) }}
+                    {% for error in form.travellers.errors %}
+                        <div class="form-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Start & End Dates Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="form-group">
+                    <label for="start_date" class="form-label">{{ form.start_date.label }}</label>
+                    {{ form.start_date(class="form-control" + (" is-invalid" if form.start_date.errors else ""), type="date") }}
+                    {% for error in form.start_date.errors %}
+                        <div class="form-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="end_date" class="form-label">{{ form.end_date.label }}</label>
+                    {{ form.end_date(class="form-control" + (" is-invalid" if form.end_date.errors else ""), type="date") }}
+                    {% for error in form.end_date.errors %}
+                        <div class="form-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Interests Selection (Sleek CSS Checkboxes) -->
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <label class="form-label" style="margin-bottom: 1rem;">Interests / Trip Style</label>
+                
+                <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                    {% for interest in available_interests %}
+                        <label style="display: inline-flex; align-items: center; background-color: var(--gray-100); border: 1px solid var(--gray-200); padding: 0.5rem 1rem; border-radius: 50px; cursor: pointer; font-size: 0.875rem; font-weight: 500; transition: var(--transition);">
+                            <input type="checkbox" name="interests" value="{{ interest }}" style="margin-right: 0.5rem; accent-color: var(--primary);">
+                            {{ interest }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2.5rem;">
+                <a href="{{ url_for('trips.dashboard') }}" class="btn btn-outline" style="flex: 1;">Cancel</a>
+                {{ form.submit(class="btn btn-primary", style="flex: 2;") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

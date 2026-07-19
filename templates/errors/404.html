@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Page Not Found - TravelMate{% endblock %}
+
+{% block content %}
+<div class="container" style="text-align: center; padding: 6rem 0;">
+    <span style="font-size: 5rem; display: block; margin-bottom: 1rem;">🔍</span>
+    <h1 style="font-size: 3rem; margin-bottom: 1rem;">Page Not Found</h1>
+    <p style="color: var(--gray-600); margin-bottom: 2rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+        We couldn't find the page you're looking for. It might have been moved, deleted, or never existed.
+    </p>
+    <a href="{{ url_for('landing') }}" class="btn btn-primary">Go back Home</a>
+</div>
+{% endblock %}

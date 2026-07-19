@@ -1,0 +1,22 @@
+# Environment variables
+.env
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Flask / SQLAlchemy local instance
+instance/
+
+# Local uploaded profile images
+static/uploads/*
+!static/uploads/.gitkeep
+
+# IDEs
+.vscode/
+.idea/
+.agents/
+venv/
+env/

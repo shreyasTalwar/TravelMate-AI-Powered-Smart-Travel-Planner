@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - TravelMate{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card-auth">
+        <h2>Create Account</h2>
+        <p class="card-auth-sub">Already have an account? <a href="{{ url_for('auth.login') }}">Log In</a></p>
+        
+        <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+            {{ form.csrf_token }}
+            
+            <!-- Full Name -->
+            <div class="form-group">
+                <label for="name" class="form-label">{{ form.name.label }}</label>
+                {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="e.g. Rahul Dev") }}
+                {% for error in form.name.errors %}
+                    <div class="form-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+            
+            <!-- Email -->
+            <div class="form-group">
+                <label for="email" class="form-label">{{ form.email.label }}</label>
+                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="e.g. rahul@example.com") }}
+                {% for error in form.email.errors %}
+                    <div class="form-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+            
+            <!-- Phone -->
+            <div class="form-group">
+                <label for="phone" class="form-label">{{ form.phone.label }}</label>
+                {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else ""), placeholder="e.g. +919876543210") }}
+                {% for error in form.phone.errors %}
+                    <div class="form-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+            
+            <!-- Password -->
+            <div class="form-group">
+                <label for="password" class="form-label">{{ form.password.label }}</label>
+                {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="Minimum 8 characters") }}
+                {% for error in form.password.errors %}
+                    <div class="form-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+            
+            <!-- Confirm Password -->
+            <div class="form-group">
+                <label for="confirm_password" class="form-label">{{ form.confirm_password.label }}</label>
+                {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Re-type password") }}
+                {% for error in form.confirm_password.errors %}
+                    <div class="form-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+            
+            <!-- Submit Button -->
+            {{ form.submit(class="btn btn-primary btn-block") }}
+        </form>
+    </div>
+</div>
+{% endblock %}

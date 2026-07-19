@@ -1,0 +1,539 @@
+{% extends "base.html" %}
+
+{% block title %}{{ trip.destination }} Trip Details - TravelMate{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+    .tab-btn {
+        background-color: var(--gray-100);
+        border: 1px solid var(--gray-200);
+        color: var(--gray-600);
+        padding: 0.5rem 1.25rem;
+        border-radius: 50px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: var(--transition);
+    }
+    .tab-btn.active {
+        background-color: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    .tab-pane {
+        display: none;
+    }
+    .tab-pane.active {
+        display: block;
+        animation: fadeIn 0.4s ease;
+    }
+    .activity-card {
+        background-color: var(--gray-50);
+        border-left: 4px solid var(--primary);
+        padding: 1.5rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        border-top: 1px solid var(--gray-200);
+        border-right: 1px solid var(--gray-200);
+        border-bottom: 1px solid var(--gray-200);
+    }
+    .activity-card.afternoon {
+        border-left-color: var(--secondary);
+    }
+    .activity-card.evening {
+        border-left-color: var(--warning);
+    }
+    .item-tag {
+        display: inline-block;
+        background-color: var(--gray-200);
+        color: var(--gray-800);
+        padding: 0.25rem 0.6rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    .gem-card {
+        background: linear-gradient(135deg, rgba(254, 243, 199, 0.4), rgba(252, 211, 77, 0.1));
+        border: 1px solid #fcd34d;
+        border-radius: var(--radius-md);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .food-card {
+        background: linear-gradient(135deg, rgba(219, 234, 254, 0.4), rgba(191, 219, 254, 0.1));
+        border: 1px solid #bfdbfe;
+        border-radius: var(--radius-md);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="margin-top: 3rem; margin-bottom: 5rem;">
+    <!-- Back to Dashboard -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <a href="{{ url_for('trips.dashboard') }}" style="color: var(--primary); font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+            &larr; Back to Dashboard
+        </a>
+        {% if version_list %}
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 0.85rem; color: var(--gray-600); font-weight: 600;">Versions:</span>
+                {% for ver in version_list %}
+                    <a href="{{ url_for('trips.view', trip_id=trip.id, version=ver) }}" 
+                       class="tab-btn {% if current_version == ver %}active{% endif %}" 
+                       style="padding: 0.25rem 0.65rem; font-size: 0.8rem; border-radius: var(--radius-sm);">
+                        v{{ ver }}
+                    </a>
+                {% endfor %}
+                <a href="{{ url_for('trips.itinerary_history', trip_id=trip.id) }}" style="font-size: 0.85rem; color: var(--primary); text-decoration: underline; margin-left: 0.5rem;">
+                    Full History
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Trip Header Card -->
+    <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 2.5rem; box-shadow: var(--shadow-sm); margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 2rem;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+                <h1 style="font-size: 2.5rem; line-height: 1.2;">{{ trip.destination }}</h1>
+                <span class="profile-status-badge verified" style="font-size: 0.8rem;">{{ trip.status | upper }}</span>
+            </div>
+            
+            <p style="color: var(--gray-600); font-size: 1.1rem; margin-bottom: 1rem;">
+                📅 <strong>{{ trip.start_date.strftime('%B %d, %Y') }}</strong> to <strong>{{ trip.end_date.strftime('%B %d, %Y') }}</strong>
+                &bull; ⏱️ <strong>{{ (trip.end_date - trip.start_date).days + 1 }} Days</strong>
+            </p>
+            
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                {% if trip.interests %}
+                    {% for interest in trip.interests %}
+                        <span style="background-color: var(--primary-light); color: var(--primary); font-size: 0.8rem; font-weight: 600; padding: 0.3rem 0.75rem; border-radius: 50px;">{{ interest }}</span>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="text-align: right; display: flex; flex-direction: column; gap: 1.5rem; align-items: flex-end;">
+            <div>
+                <p style="font-size: 0.8rem; color: var(--gray-400); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Estimated Budget</p>
+                <p style="font-size: 1.75rem; font-weight: 800; color: var(--success);">₹{{ "{:,.2f}".format(trip.budget) }}</p>
+                <p style="font-size: 0.85rem; color: var(--gray-600); margin-top: 0.25rem;">👥 {{ trip.travellers }} {{ 'Traveler' if trip.travellers == 1 else 'Travelers' }}</p>
+            </div>
+            
+            <div style="display: flex; gap: 0.75rem;">
+                <a href="{{ url_for('trips.edit', trip_id=trip.id) }}" class="btn btn-outline" style="padding: 0.5rem 1rem;">✏️ Edit Details</a>
+                <form action="{{ url_for('trips.delete', trip_id=trip.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this trip? This action cannot be undone.');" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary" style="background-color: var(--danger); padding: 0.5rem 1rem;">🗑️ Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Layout -->
+    {% if not itinerary %}
+        <!-- AI Generator Call to Action (When no itinerary is generated yet) -->
+        <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 4rem 2rem; box-shadow: var(--shadow-sm); text-align: center; border-left: 5px solid var(--primary); margin-bottom: 3rem;">
+            <span style="font-size: 4rem; display: block; margin-bottom: 1rem;">🤖</span>
+            <h3 style="font-size: 1.75rem; margin-bottom: 0.75rem;">Construct Your AI Itinerary</h3>
+            <p style="color: var(--gray-600); max-width: 550px; margin: 0 auto 2rem auto; font-size: 1rem; line-height: 1.6;">
+                Generate a custom day-by-day timetable packed with spots, dining choices, hidden gems, and travel tips tailored to your interests and budget.
+            </p>
+            <form action="{{ url_for('trips.generate_itinerary', trip_id=trip.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-primary btn-lg">✨ Generate AI Itinerary</button>
+            </form>
+        </div>
+    {% else %}
+        <!-- Display Generated Itinerary -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2.5rem;">
+            
+            <!-- Left Side: Day-by-Day Timetable Schedule -->
+            <div>
+                <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 2.5rem; box-shadow: var(--shadow-sm); margin-bottom: 2.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 2px solid var(--gray-100); padding-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                        <h2 style="font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                            <span>📋</span> Day Plans (v{{ current_version }})
+                        </h2>
+                        
+                        <form action="{{ url_for('trips.generate_itinerary', trip_id=trip.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-outline" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">🔄 Regenerate Itinerary</button>
+                        </form>
+                    </div>
+
+                    <!-- Day Navigation Tabs -->
+                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2rem;">
+                        {% for day in itinerary.ai_itinerary.days %}
+                            <button class="tab-btn {% if loop.first %}active{% endif %}" data-day="day-{{ day.day_number }}">
+                                Day {{ day.day_number }}
+                            </button>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Day Timelines Content -->
+                    <div>
+                        {% for day in itinerary.ai_itinerary.days %}
+                            <div class="tab-pane {% if loop.first %}active{% endif %}" id="day-{{ day.day_number }}">
+                                <h3 style="font-size: 1.2rem; color: var(--gray-800); margin-bottom: 1.5rem;">
+                                    📅 Schedule for {{ day.date if day.date else 'Day ' ~ day.day_number }}
+                                </h3>
+                                
+                                <!-- Slots -->
+                                <div class="activity-card morning">
+                                    <h4 style="color: var(--primary); margin-bottom: 0.5rem; font-size: 1.05rem;">🌅 Morning Slot</h4>
+                                    <p style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.25rem;">{{ day.slots.morning.activity }}</p>
+                                    <p style="color: var(--gray-600); font-size: 0.925rem; margin-bottom: 0.5rem;">{{ day.slots.morning.description }}</p>
+                                    <span style="font-weight: 700; color: var(--success); font-size: 0.85rem;">Est. Cost: ₹{{ day.slots.morning.cost }}</span>
+                                </div>
+
+                                <div class="activity-card afternoon">
+                                    <h4 style="color: var(--secondary); margin-bottom: 0.5rem; font-size: 1.05rem;">☀️ Afternoon Slot</h4>
+                                    <p style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.25rem;">{{ day.slots.afternoon.activity }}</p>
+                                    <p style="color: var(--gray-600); font-size: 0.925rem; margin-bottom: 0.5rem;">{{ day.slots.afternoon.description }}</p>
+                                    <span style="font-weight: 700; color: var(--success); font-size: 0.85rem;">Est. Cost: ₹{{ day.slots.afternoon.cost }}</span>
+                                </div>
+
+                                <div class="activity-card evening">
+                                    <h4 style="color: var(--warning); margin-bottom: 0.5rem; font-size: 1.05rem;">🌆 Evening Slot</h4>
+                                    <p style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.25rem;">{{ day.slots.evening.activity }}</p>
+                                    <p style="color: var(--gray-600); font-size: 0.925rem; margin-bottom: 0.5rem;">{{ day.slots.evening.description }}</p>
+                                    <span style="font-weight: 700; color: var(--success); font-size: 0.85rem;">Est. Cost: ₹{{ day.slots.evening.cost }}</span>
+                                </div>
+
+                                <!-- Recommended Restaurants -->
+                                {% if day.restaurants %}
+                                    <div style="margin-top: 2rem; background-color: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: 1.5rem;">
+                                        <h4 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--dark); display: flex; align-items: center; gap: 0.5rem;">
+                                            <span>🍽️</span> Recommended Dining
+                                        </h4>
+                                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                                            {% for rest in day.restaurants %}
+                                                <div style="background: white; border: 1px solid var(--gray-200); border-radius: var(--radius-sm); padding: 1rem;">
+                                                    <p style="font-weight: 600; font-size: 1rem; color: var(--dark); margin-bottom: 0.25rem;">{{ rest.name }}</p>
+                                                    <p style="font-size: 0.85rem; color: var(--gray-600); margin-bottom: 0.5rem;">Cuisine: {{ rest.cuisine }}</p>
+                                                    <div style="margin-bottom: 0.5rem;">
+                                                        {% for dish in rest.recommended_dishes %}
+                                                            <span class="item-tag" style="margin-bottom: 0.25rem; font-size: 0.75rem;">{{ dish }}</span>
+                                                        {% endfor %}
+                                                    </div>
+                                                    <p style="font-size: 0.85rem; font-weight: 700; color: var(--success);">Est. Cost: ₹{{ rest.estimated_cost_per_person }}/person</p>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                <!-- Transportation -->
+                                {% if day.transportation %}
+                                    <div style="margin-top: 1.5rem; background-color: var(--primary-light); color: var(--primary); border-radius: var(--radius-md); padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                                        <div>
+                                            <h5 style="margin-bottom: 0.25rem; font-size: 0.95rem; font-weight: 700; text-transform: uppercase;">🚗 Transit Advice</h5>
+                                            <p style="font-size: 0.9rem; color: var(--gray-800); font-weight: 500;">
+                                                Mode: <strong>{{ day.transportation.mode }}</strong> &bull; {{ day.transportation.details }}
+                                            </p>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <span style="font-size: 1.1rem; font-weight: 700; color: var(--primary);">₹{{ day.transportation.cost }}</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Hidden Gems & Local Foods Section -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem;">
+                    <!-- Hidden Gems -->
+                    <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 2rem; box-shadow: var(--shadow-sm);">
+                        <h3 style="font-size: 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; color: #b45309;">
+                            <span>💎</span> Hidden Gems
+                        </h3>
+                        {% if itinerary.ai_itinerary.hidden_gems %}
+                            {% for gem in itinerary.ai_itinerary.hidden_gems %}
+                                <div class="gem-card">
+                                    <h4 style="font-size: 1rem; color: #78350f; margin-bottom: 0.25rem;">{{ gem.name }}</h4>
+                                    <p style="font-size: 0.85rem; color: #92400e; margin-bottom: 0.25rem; font-style: italic;">Location: {{ gem.location }}</p>
+                                    <p style="font-size: 0.875rem; color: var(--gray-800);">{{ gem.description }}</p>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p style="color: var(--gray-400); font-style: italic; font-size: 0.9rem;">None suggested.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Local Foods -->
+                    <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 2rem; box-shadow: var(--shadow-sm);">
+                        <h3 style="font-size: 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
+                            <span>🍲</span> Must-Try Local Cuisine
+                        </h3>
+                        {% if itinerary.ai_itinerary.local_food %}
+                            {% for food in itinerary.ai_itinerary.local_food %}
+                                <div class="food-card">
+                                    <h4 style="font-size: 1rem; color: var(--primary); margin-bottom: 0.25rem;">{{ food.name }}</h4>
+                                    <p style="font-size: 0.875rem; color: var(--gray-800);">{{ food.description }}</p>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p style="color: var(--gray-400); font-style: italic; font-size: 0.9rem;">None suggested.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Rain Alternatives & Tourist traps -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem;">
+                    <!-- Rain Alternatives -->
+                    <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 2rem; box-shadow: var(--shadow-sm);">
+                        <h3 style="font-size: 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; color: var(--info);">
+                            <span>☔</span> Rain Alternatives
+                        </h3>
+                        {% if itinerary.ai_itinerary.rain_alternatives %}
+                            {% for alt in itinerary.ai_itinerary.rain_alternatives %}
+                                <div style="background-color: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 0.75rem;">
+                                    <h4 style="font-size: 0.95rem; color: var(--dark); margin-bottom: 0.25rem;">{{ alt.activity }}</h4>
+                                    <p style="font-size: 0.85rem; color: var(--gray-600);">{{ alt.description }}</p>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p style="color: var(--gray-400); font-style: italic; font-size: 0.9rem;">None suggested.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Tourist traps -->
+                    <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 2rem; box-shadow: var(--shadow-sm);">
+                        <h3 style="font-size: 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; color: var(--danger);">
+                            <span>⚠️</span> Tourist Traps / Warnings
+                        </h3>
+                        {% if itinerary.ai_itinerary.tourist_traps %}
+                            {% for trap in itinerary.ai_itinerary.tourist_traps %}
+                                <div style="background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: var(--radius-md); padding: 1rem; margin-bottom: 0.75rem;">
+                                    <h4 style="font-size: 0.95rem; color: #991b1b; margin-bottom: 0.25rem;">{{ trap.name }}</h4>
+                                    <p style="font-size: 0.85rem; color: #b91c1c;">{{ trap.warning }}</p>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p style="color: var(--gray-400); font-style: italic; font-size: 0.9rem;">None suggested.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Sidebar packing tips & weather/map placeholders -->
+            <div>
+                <!-- Packing List & Tips -->
+                <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 2rem; box-shadow: var(--shadow-sm); margin-bottom: 2.5rem;">
+                    <h3 style="font-size: 1.25rem; margin-bottom: 1.25rem; border-bottom: 2px solid var(--gray-100); padding-bottom: 0.5rem;">🎒 Travel Essentials</h3>
+                    
+                    <!-- Packing list -->
+                    <h4 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-400); margin-bottom: 0.75rem;">Packing Checklist</h4>
+                    <ul style="list-style: none; margin-bottom: 1.5rem;">
+                        {% for pack in itinerary.ai_itinerary.packing_list %}
+                            <li style="font-size: 0.9rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="checkbox" style="accent-color: var(--success);">
+                                <span>{{ pack }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                    <!-- Travel tips -->
+                    <h4 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-400); margin-bottom: 0.75rem;">Smart Tips</h4>
+                    <ul style="padding-left: 1.25rem; font-size: 0.875rem; color: var(--gray-600); line-height: 1.5;">
+                        {% for tip in itinerary.ai_itinerary.travel_tips %}
+                            <li style="margin-bottom: 0.5rem;">{{ tip }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Weather Card (Phase 4) -->
+                <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 2rem; box-shadow: var(--shadow-sm); margin-bottom: 2.5rem;">
+                    <h3 style="font-size: 1.2rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span>🌦️</span> Weather Sync
+                    </h3>
+                    
+                    {% if forecast %}
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            {% for day in forecast %}
+                                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--gray-100); padding-bottom: 0.75rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <img src="http://openweathermap.org/img/wn/{{ day.icon }}.png" alt="{{ day.description }}" style="width: 32px; height: 32px;">
+                                        <div>
+                                            <p style="font-size: 0.85rem; font-weight: 600; margin: 0; color: var(--dark);">{{ day.date }}</p>
+                                            <p style="font-size: 0.75rem; color: var(--gray-600); margin: 0;">{{ day.description }}</p>
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <p style="font-size: 0.85rem; font-weight: 700; margin: 0; color: var(--dark);">{{ day.temp_avg }}°C</p>
+                                        <p style="font-size: 0.75rem; color: var(--primary); margin: 0; font-weight: 500;">☔ {{ day.rain_chance }}%</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if itinerary %}
+                            <form action="{{ url_for('trips.adapt_weather', trip_id=trip.id) }}" method="POST" style="margin-top: 1.5rem;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-secondary btn-block" style="background-color: var(--secondary); font-size: 0.875rem; width: 100%;">
+                                    ☔ Adapt Itinerary to Weather
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% else %}
+                        <p style="font-size: 0.85rem; color: var(--gray-600); line-height: 1.5; margin-bottom: 1rem;">
+                            Live forecast sync is unavailable. Check your OpenWeather key or network connection.
+                        </p>
+                        <div style="background-color: var(--gray-50); border-radius: var(--radius-md); padding: 1rem; border: 1px solid var(--gray-200); text-align: center;">
+                            <span style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem;">☁️</span>
+                            <span style="font-size: 0.8rem; font-weight: 600; color: var(--gray-400);">Forecast Unavailable</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Smart Maps (Phase 5) -->
+                <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 2rem; box-shadow: var(--shadow-sm); margin-bottom: 2.5rem;">
+                    <h3 style="font-size: 1.2rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span>🗺️</span> Interactive Map
+                    </h3>
+                    <div id="map" style="height: 250px; border-radius: var(--radius-md); margin-bottom: 1.25rem; border: 1px solid var(--gray-200); position: relative; z-index: 1;"></div>
+                    
+                    <!-- POI Toggles -->
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; color: var(--gray-800);">
+                        <p style="margin-bottom: 0.25rem; text-transform: uppercase; font-size: 0.75rem; color: var(--gray-400);">Display Nearby Places</p>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="toggle-hotels" checked style="accent-color: #3b82f6;"> 🏨 Hotels / Stays
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="toggle-restaurants" checked style="accent-color: #10b981;"> 🍔 Restaurants
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="toggle-attractions" checked style="accent-color: #f59e0b;"> 🎡 Attractions
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="toggle-hospitals" checked style="accent-color: #ef4444;"> 🏥 Hospitals
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="toggle-police" checked style="accent-color: #1e1b4b;"> 🚨 Police
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="toggle-atms" checked style="accent-color: #06b6d4;"> 🏧 ATMs
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Day timeline switching tabs
+        const tabBtns = document.querySelectorAll('.tab-btn[data-day]');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetPaneId = btn.getAttribute('data-day');
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                tabPanes.forEach(pane => {
+                    if (pane.id === targetPaneId) {
+                        pane.classList.add('active');
+                    } else {
+                        pane.classList.remove('active');
+                    }
+                });
+            });
+        });
+
+        // Initialize Leaflet Map
+        const mapContainer = document.getElementById('map');
+        if (mapContainer) {
+            // Fetch geocoded location and places of interest
+            fetch("{{ url_for('trips.get_trip_map_data', trip_id=trip.id) }}")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lat = data.lat;
+                        const lon = data.lon;
+                        const destination = data.destination;
+                        
+                        // Centering map at destination coords
+                        const map = L.map('map').setView([lat, lon], 13);
+                        
+                        // Load tiles from OpenStreetMap
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 18,
+                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        }).addTo(map);
+                        
+                        // Central landmark marker
+                        L.marker([lat, lon]).addTo(map)
+                            .bindPopup(`<b>${destination.toUpperCase()}</b><br>Trip Destination Center`)
+                            .openPopup();
+                            
+                        // Initialize markers store
+                        const markersGroup = {
+                            hotels: [],
+                            restaurants: [],
+                            attractions: [],
+                            hospitals: [],
+                            police: [],
+                            atms: []
+                        };
+                        
+                        // Populate markers
+                        const categories = ['hotels', 'restaurants', 'attractions', 'hospitals', 'police', 'atms'];
+                        
+                        categories.forEach(cat => {
+                            const items = data.pois[cat] || [];
+                            items.forEach(item => {
+                                const popupText = `<b>${item.name}</b><br>${item.address || 'Nearby Area'}`;
+                                const marker = L.marker([item.lat, item.lon]).bindPopup(popupText);
+                                
+                                // Show on map initially
+                                marker.addTo(map);
+                                markersGroup[cat].push(marker);
+                            });
+                        });
+                        
+                        // Bind checkbox switches to add/remove layers
+                        categories.forEach(cat => {
+                            const checkbox = document.getElementById(`toggle-${cat}`);
+                            if (checkbox) {
+                                checkbox.addEventListener('change', function() {
+                                    markersGroup[cat].forEach(marker => {
+                                        if (this.checked) {
+                                            map.addLayer(marker);
+                                        } else {
+                                            map.removeLayer(marker);
+                                        }
+                                    });
+                                });
+                            }
+                        });
+                        
+                    } else {
+                        mapContainer.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--danger);">Failed to construct map: ${data.error}</div>`;
+                    }
+                })
+                .catch(err => {
+                    console.error("Map Sync Error:", err);
+                    mapContainer.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--danger);">Failed to query mapping server.</div>';
+                });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - TravelMate{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="profile-container">
+        <!-- Sidebar -->
+        <div class="profile-sidebar">
+            <div class="profile-avatar-container">
+                {% if user.profile_image %}
+                    <img src="{{ url_for('static', filename='uploads/' + user.profile_image) }}" alt="Profile Picture" class="profile-avatar">
+                {% else %}
+                    <div class="profile-avatar-placeholder">
+                        {{ user.name[0] | upper if user.name else 'U' }}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <h3>{{ user.name }}</h3>
+            <p>{{ user.email }}</p>
+            
+            <div style="margin-bottom: 1.5rem;">
+                {% if user.email_verified %}
+                    <span class="profile-status-badge verified">✓ Email Verified</span>
+                {% else %}
+                    <span class="profile-status-badge unverified">⚠ Email Unverified</span>
+                    <br>
+                    <a href="{{ url_for('auth.verify_email') }}" style="font-size: 0.8rem; color: var(--primary); text-decoration: underline;">Verify Now (Simulated)</a>
+                {% endif %}
+            </div>
+            
+            <hr style="border: 0; border-top: 1px solid var(--gray-200); margin: 1.5rem 0;">
+            
+            <div style="text-align: left;">
+                <p style="margin-bottom: 0.5rem; font-weight: 600; color: var(--gray-800);">Role: <span style="font-weight: 400; text-transform: uppercase;">{{ user.role }}</span></p>
+                <p style="margin-bottom: 0.5rem; font-weight: 600; color: var(--gray-800);">Joined: <span style="font-weight: 400;">{{ user.created_at.strftime('%B %Y') }}</span></p>
+            </div>
+        </div>
+        
+        <!-- Profile Form Content -->
+        <div class="profile-content">
+            <h2>Account Settings</h2>
+            
+            <form method="POST" action="{{ url_for('auth.profile') }}" enctype="multipart/form-data" novalidate>
+                {{ form.csrf_token }}
+                
+                <div class="form-group">
+                    <label for="name" class="form-label">{{ form.name.label }}</label>
+                    {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                    {% for error in form.name.errors %}
+                        <div class="form-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Email Address (Read-only)</label>
+                    <input type="text" class="form-control" value="{{ user.email }}" readonly style="background-color: var(--gray-200); color: var(--gray-600); cursor: not-allowed;">
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone" class="form-label">{{ form.phone.label }}</label>
+                    {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else "")) }}
+                    {% for error in form.phone.errors %}
+                        <div class="form-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="profile_image" class="form-label">{{ form.profile_image.label }}</label>
+                    {{ form.profile_image(class="form-control" + (" is-invalid" if form.profile_image.errors else ""), id="profile_image") }}
+                    <small style="color: var(--gray-600); font-size: 0.85rem; display: block; margin-top: 0.25rem;">Supported formats: JPG, JPEG, PNG, GIF. Max size 2MB.</small>
+                    {% for error in form.profile_image.errors %}
+                        <div class="form-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                
+                <div style="margin-top: 2rem;">
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

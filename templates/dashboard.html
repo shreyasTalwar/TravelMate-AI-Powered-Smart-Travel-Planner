@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - TravelMate{% endblock %}
+
+{% block content %}
+<div class="container" style="margin-top: 3rem; margin-bottom: 5rem;">
+    <!-- Welcome Header & Quick Stats -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 2.5rem; gap: 1.5rem;">
+        <div>
+            <h1 style="font-size: 2.25rem;">Hello, {{ user.name }}!</h1>
+            <p style="color: var(--gray-600);">Welcome back. Start planning your next dream adventure or manage your upcoming trips.</p>
+        </div>
+        <div style="display: flex; gap: 1rem;">
+            <a href="{{ url_for('trips.create') }}" class="btn btn-primary">➕ Plan New Trip</a>
+            <a href="{{ url_for('auth.profile') }}" class="btn btn-outline">👤 Edit Profile</a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+        <div style="background: white; padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--gray-200); box-shadow: var(--shadow-sm);">
+            <p style="color: var(--gray-400); font-size: 0.875rem; text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Total Trips</p>
+            <h3 style="font-size: 2rem;">{{ total_trips }}</h3>
+        </div>
+        <div style="background: white; padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--gray-200); box-shadow: var(--shadow-sm);">
+            <p style="color: var(--gray-400); font-size: 0.875rem; text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Total Budget Plan</p>
+            <h3 style="font-size: 2rem; color: var(--success);">₹{{ "{:,.2f}".format(total_budget) }}</h3>
+        </div>
+        <!-- Weather Card Placeholder (Phase 4 Goal) -->
+        <div style="background: linear-gradient(135deg, #3b82f6, #06b6d4); color: white; padding: 1.5rem; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); position: relative; overflow: hidden;">
+            <div style="position: absolute; right: -15px; top: -15px; font-size: 5rem; opacity: 0.15; pointer-events: none;">🌦️</div>
+            <p style="color: rgba(255,255,255,0.8); font-size: 0.875rem; text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Weather Sync</p>
+            <h3 style="font-size: 1.25rem; font-family: var(--font-body); font-weight: 600; margin-bottom: 0.25rem;">Live Forecasts</h3>
+            <p style="font-size: 0.85rem; opacity: 0.9;">Weather intelligence integration arriving in **Phase 4**!</p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Split Content -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2.5rem;">
+        
+        <!-- Trips Section -->
+        <div>
+            <!-- Upcoming Trips -->
+            <div style="margin-bottom: 3.5rem;">
+                <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>✈️</span> Upcoming Adventures
+                </h2>
+                
+                {% if upcoming_trips %}
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                        {% for trip in upcoming_trips %}
+                            <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 2rem; box-shadow: var(--shadow-sm); transition: var(--transition); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                                        <h3 style="font-size: 1.35rem; color: var(--dark);">{{ trip.destination }}</h3>
+                                        <span class="profile-status-badge verified" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">{{ trip.status | upper }}</span>
+                                    </div>
+                                    <p style="color: var(--gray-600); font-size: 0.9rem; margin-bottom: 0.5rem;">
+                                        📅 {{ trip.start_date.strftime('%d %b %Y') }} to {{ trip.end_date.strftime('%d %b %Y') }} 
+                                        &bull; 👥 {{ trip.travellers }} {{ 'traveler' if trip.travellers == 1 else 'travelers' }}
+                                    </p>
+                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem;">
+                                        {% if trip.interests %}
+                                            {% for interest in trip.interests %}
+                                                <span style="background-color: var(--primary-light); color: var(--primary); font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 50px;">{{ interest }}</span>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div style="text-align: right; display: flex; flex-direction: column; gap: 1rem; align-items: flex-end;">
+                                    <div>
+                                        <p style="font-size: 0.75rem; color: var(--gray-400); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Budget</p>
+                                        <p style="font-size: 1.25rem; font-weight: 700; color: var(--success);">₹{{ "{:,.2f}".format(trip.budget) }}</p>
+                                    </div>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <a href="{{ url_for('trips.view', trip_id=trip.id) }}" class="btn btn-outline" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">View</a>
+                                        <a href="{{ url_for('trips.edit', trip_id=trip.id) }}" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background-color: var(--gray-800);">Edit</a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div style="background: white; border: 2px dashed var(--gray-300); border-radius: var(--radius-lg); padding: 3rem; text-align: center;">
+                        <span style="font-size: 3rem; display: block; margin-bottom: 1rem;">🗺️</span>
+                        <h4 style="font-size: 1.15rem; margin-bottom: 0.5rem;">No trips planned yet</h4>
+                        <p style="color: var(--gray-600); margin-bottom: 1.5rem; font-size: 0.95rem;">Generate your customized AI itinerary in seconds.</p>
+                        <a href="{{ url_for('trips.create') }}" class="btn btn-primary">Plan a Trip</a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Recent/Past Trips -->
+            <div>
+                <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; color: var(--gray-600);">
+                    <span>history</span> Past Journeys
+                </h2>
+                
+                {% if recent_trips %}
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 1.25rem; opacity: 0.75;">
+                        {% for trip in recent_trips %}
+                            <div style="background: white; border-radius: var(--radius-md); border: 1px solid var(--gray-200); padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                                <div>
+                                    <h4 style="font-size: 1.1rem; color: var(--gray-800);">{{ trip.destination }}</h4>
+                                    <p style="color: var(--gray-600); font-size: 0.85rem;">
+                                        {{ trip.start_date.strftime('%B %Y') }} &bull; ₹{{ "{:,.2f}".format(trip.budget) }}
+                                    </p>
+                                </div>
+                                <a href="{{ url_for('trips.view', trip_id=trip.id) }}" class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Review Details</a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p style="color: var(--gray-400); font-style: italic; font-size: 0.95rem;">No past trips stored.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar Section -->
+        <div>
+            <!-- Popular Destinations Sidebar -->
+            <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 2rem; box-shadow: var(--shadow-sm);">
+                <h3 style="font-size: 1.25rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--gray-100); padding-bottom: 0.5rem;">🔥 Trending Destinies</h3>
+                
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    {% for dest in popular_destinations %}
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; border-bottom: 1px solid var(--gray-100); padding-bottom: 1rem;">
+                            <h4 style="font-size: 1.05rem; color: var(--dark); font-weight: 600;">{{ dest.name }}</h4>
+                            <p style="font-size: 0.85rem; color: var(--gray-600); line-height: 1.4;">{{ dest.desc }}</p>
+                            <!-- Direct Creation link -->
+                            <a href="{{ url_for('trips.create', dest=dest.name) }}" style="font-size: 0.8rem; color: var(--primary); font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem; margin-top: 0.25rem;">
+                                Plan this trip &rarr;
+                            </a>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}

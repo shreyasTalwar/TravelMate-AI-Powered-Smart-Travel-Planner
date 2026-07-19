@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}TravelMate - Plan Your Next Adventure Instantly with AI{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+    <div class="container">
+        <span class="hero-tag">🌟 Now powered by Gemini AI</span>
+        <h1>Stop Planning. <br><span>Start Traveling.</span></h1>
+        <p>Get a complete, personalized day-by-day travel itinerary with smart local weather adjustments, interactive maps, safety ratings, and dynamic budgets in under 10 seconds.</p>
+        <div class="hero-actions">
+            {% if session.get('user_id') %}
+                <a href="{{ url_for('auth.profile') }}" class="btn btn-primary btn-lg">Go to Profile</a>
+                <a href="#" class="btn btn-outline btn-lg">Plan a Trip (Phase 2)</a>
+            {% else %}
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">Get Started Free</a>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-lg">Sign In</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features">
+    <div class="container">
+        <div class="section-title">
+            <h2>Everything You Need in One Place</h2>
+            <p>Ditch the dozens of open tabs. We handle all travel logistics for you.</p>
+        </div>
+        
+        <div class="features-grid">
+            <!-- Feature 1 -->
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <h3>AI Itinerary Generator</h3>
+                <p>Personalized morning, afternoon, and evening activities based on budget, duration, and interests.</p>
+            </div>
+            
+            <!-- Feature 2 -->
+            <div class="feature-card">
+                <div class="feature-icon">🌦️</div>
+                <h3>Weather Intelligence</h3>
+                <p>Live forecast syncing. The AI updates your itinerary on the fly if rain or extreme weather is detected.</p>
+            </div>
+            
+            <!-- Feature 3 -->
+            <div class="feature-card">
+                <div class="feature-icon">🗺️</div>
+                <h3>Smart Map Navigation</h3>
+                <p>Interactive mapping of hotels, local restaurants, emergency zones, and routing details powered by OpenStreetMap.</p>
+            </div>
+            
+            <!-- Feature 4 -->
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3>Women's Safety Module</h3>
+                <p>AI safety tips, safety indexes, unsafe area warnings, and instant localized emergency contacts.</p>
+            </div>
+            
+            <!-- Feature 5 -->
+            <div class="feature-card">
+                <div class="feature-icon">💳</div>
+                <h3>Budget & Expense Planner</h3>
+                <p>Track costs, categorize activities, analyze spending graphs, and split expenses seamlessly.</p>
+            </div>
+            
+            <!-- Feature 6 -->
+            <div class="feature-card">
+                <div class="feature-icon">👥</div>
+                <h3>Travel Buddy Matcher</h3>
+                <p>Find compatible travelers going to the same destinations during your exact travel dates.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials Section -->
+<section class="testimonials">
+    <div class="container">
+        <div class="section-title">
+            <h2>Loved by Explorers</h2>
+            <p>See how travelers are utilizing TravelMate to experience hassle-free adventures.</p>
+        </div>
+        
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <p class="testimonial-text">"TravelMate generated a perfect 5-day Tokyo itinerary. When it rained on Wednesday, it updated my beach trips to museum visits instantly!"</p>
+                <div class="testimonial-user">
+                    <div class="testimonial-avatar">JD</div>
+                    <div class="testimonial-info">
+                        <h4>Jessica Davis</h4>
+                        <p>Solo Backpacker</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="testimonial-card">
+                <p class="testimonial-text">"The safety features and emergency contacts gave me peace of mind traveling through remote areas. Absolutely indispensable tool!"</p>
+                <div class="testimonial-user">
+                    <div class="testimonial-avatar">AS</div>
+                    <div class="testimonial-info">
+                        <h4>Aarav Sharma</h4>
+                        <p>Student Traveler</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="testimonial-card">
+                <p class="testimonial-text">"Loved the budget breakdown chart! It made managing expenses for our 4-person family trip extremely simple and transparent."</p>
+                <div class="testimonial-user">
+                    <div class="testimonial-avatar">ML</div>
+                    <div class="testimonial-info">
+                        <h4>Mark Lee</h4>
+                        <p>Family Travel Planner</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

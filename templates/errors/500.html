@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Internal Server Error - TravelMate{% endblock %}
+
+{% block content %}
+<div class="container" style="text-align: center; padding: 6rem 0;">
+    <span style="font-size: 5rem; display: block; margin-bottom: 1rem;">💥</span>
+    <h1 style="font-size: 3rem; margin-bottom: 1rem;">Something Went Wrong</h1>
+    <p style="color: var(--gray-600); margin-bottom: 2rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+        Our servers encountered an internal error. We are looking into this immediately. Please try refreshing or checking back soon.
+    </p>
+    <a href="{{ url_for('landing') }}" class="btn btn-primary">Go back Home</a>
+</div>
+{% endblock %}
