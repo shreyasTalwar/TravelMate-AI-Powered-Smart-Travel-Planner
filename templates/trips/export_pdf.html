@@ -124,6 +124,8 @@
             font-weight: bold;
             border-radius: 3px;
         }
+        .text-success-pdf { color: #2f855a; }
+        .text-danger-pdf { color: #c53030; }
     </style>
 </head>
 <body>
@@ -144,7 +146,7 @@
     <table class="meta-table">
         <tr>
             <td class="meta-label">Destination</td>
-            <td><strong>{{ trip.destination | uppercase }}</strong></td>
+            <td><strong>{{ trip.destination | upper }}</strong></td>
             <td class="meta-label">Travel Dates</td>
             <td>{{ trip.start_date.strftime('%d %b %Y') }} to {{ trip.end_date.strftime('%d %b %Y') }}</td>
         </tr>
@@ -285,7 +287,7 @@
             <td class="meta-label">Total Actually Spent</td>
             <td style="color: #c53030; font-weight: bold;">₹{{ "{:,.2f}".format(total_spent) }}</td>
             <td class="meta-label">Remaining Balance</td>
-            <td style="font-weight: bold; color: {% if remaining_balance >= 0 %}#2f855a{% else %}#c53030{% endif %};">
+            <td class="{% if remaining_balance >= 0 %}text-success-pdf{% else %}text-danger-pdf{% endif %}" style="font-weight: bold;">
                 ₹{{ "{:,.2f}".format(remaining_balance) }}
             </td>
         </tr>

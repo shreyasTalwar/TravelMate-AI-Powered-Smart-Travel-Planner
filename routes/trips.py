@@ -295,7 +295,9 @@ def budget(trip_id):
             spent_by_category[exp.category] += float(exp.amount)
         total_spent += float(exp.amount)
         
-    remaining_balance = float(trip.budget) - total_spent
+    budget_val = float(trip.budget)
+    remaining_balance = budget_val - total_spent
+    percent = (total_spent / budget_val * 100) if budget_val > 0 else 0.0
     
     # Parse active itinerary to extract AI estimates
     itinerary = Itinerary.query.filter_by(trip_id=trip.id).order_by(Itinerary.version.desc()).first()
@@ -330,6 +332,7 @@ def budget(trip_id):
         spent_by_category=spent_by_category,
         total_spent=total_spent,
         remaining_balance=remaining_balance,
+        percent=percent,
         ai_estimates=ai_estimates,
         ai_estimated_total=ai_estimated_total,
         categories=categories

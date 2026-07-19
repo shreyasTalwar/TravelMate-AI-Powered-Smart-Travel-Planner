@@ -93,13 +93,12 @@
         <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 0.95rem;">
             <span>Budget Utilization</span>
             <span>
-                {% set percent = (total_spent / trip.budget * 100) if trip.budget > 0 else 0 %}
                 {{ percent | round(1) }}%
             </span>
         </div>
         <div class="progress-bar-container">
-            <div class="progress-bar-fill {% if percent > 90 %}bg-danger{% elif percent > 70 %}bg-warning{% else %}bg-success{% endif %}" 
-                 style="width: {{ 100 if percent > 100 else percent }}%;"></div>
+            <div id="utilization-bar" class="progress-bar-fill {% if percent > 90 %}bg-danger{% elif percent > 70 %}bg-warning{% else %}bg-success{% endif %}" 
+                 data-percent="{{ percent }}"></div>
         </div>
         <p style="font-size: 0.85rem; color: var(--gray-600); margin: 0;">
             {% if remaining_balance > 0 %}
@@ -250,6 +249,13 @@
         const categories = JSON.parse(dataNode.dataset.categories);
         const spentValues = JSON.parse(dataNode.dataset.spent);
         const estimateValues = JSON.parse(dataNode.dataset.estimates);
+
+        // Set utilization bar width dynamically
+        const utilBar = document.getElementById('utilization-bar');
+        if (utilBar) {
+            const p = parseFloat(utilBar.dataset.percent) || 0;
+            utilBar.style.width = (p > 100 ? 100 : p) + '%';
+        }
 
         // --- Doughnut Chart ---
         const spentData = {
