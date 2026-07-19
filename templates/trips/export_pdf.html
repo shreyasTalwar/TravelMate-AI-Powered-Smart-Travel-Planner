@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Travel Itinerary - {{ trip.destination }}</title>
+    <style>
+        @page {
+            size: a4;
+            margin: 2cm;
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-family: 'Helvetica', sans-serif;
+                font-size: 8pt;
+                color: #718096;
+            }
+        }
+        body {
+            font-family: 'Helvetica', Arial, sans-serif;
+            color: #2d3748;
+            line-height: 1.5;
+            font-size: 10pt;
+        }
+        h1 {
+            font-size: 24pt;
+            color: #1a365d;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        h2 {
+            font-size: 16pt;
+            color: #2b6cb0;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 5px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        h3 {
+            font-size: 12pt;
+            color: #2d3748;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+        .meta-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            background-color: #f7fafc;
+        }
+        .meta-table td {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+        }
+        .meta-label {
+            font-weight: bold;
+            color: #4a5568;
+            width: 30%;
+        }
+        .day-container {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        .day-header {
+            background-color: #2b6cb0;
+            color: white;
+            padding: 6px 12px;
+            font-weight: bold;
+            font-size: 11pt;
+            margin-bottom: 10px;
+        }
+        .slot-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .slot-table td {
+            padding: 8px;
+            border-bottom: 1px solid #edf2f7;
+            vertical-align: top;
+        }
+        .slot-time {
+            width: 15%;
+            font-weight: bold;
+            color: #2b6cb0;
+            text-transform: uppercase;
+            font-size: 9pt;
+        }
+        .slot-cost {
+            width: 15%;
+            text-align: right;
+            font-weight: bold;
+            color: #4a5568;
+        }
+        .expense-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .expense-table th {
+            background-color: #edf2f7;
+            padding: 8px;
+            font-weight: bold;
+            text-align: left;
+            border: 1px solid #e2e8f0;
+        }
+        .expense-table td {
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+        .bullet-list {
+            margin-top: 5px;
+            padding-left: 20px;
+        }
+        .bullet-list li {
+            margin-bottom: 5px;
+        }
+        .badge {
+            background-color: #e2e8f0;
+            padding: 2px 6px;
+            font-size: 8pt;
+            font-weight: bold;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Cover Page Info -->
+    <div style="text-align: center; margin-top: 5cm; margin-bottom: 5cm;">
+        <h1 style="font-size: 28pt; margin-bottom: 10px;">TravelMate Itinerary</h1>
+        <p style="font-size: 14pt; color: #4a5568;">Your complete adventure guide to <strong>{{ trip.destination }}</strong></p>
+        <div style="margin-top: 50px; font-size: 10pt; color: #718096;">
+            Generated on {{ today_date }}
+        </div>
+    </div>
+    
+    <div class="page-break"></div>
+
+    <!-- Trip Details Meta -->
+    <h2>📋 Trip Details</h2>
+    <table class="meta-table">
+        <tr>
+            <td class="meta-label">Destination</td>
+            <td><strong>{{ trip.destination | uppercase }}</strong></td>
+            <td class="meta-label">Travel Dates</td>
+            <td>{{ trip.start_date.strftime('%d %b %Y') }} to {{ trip.end_date.strftime('%d %b %Y') }}</td>
+        </tr>
+        <tr>
+            <td class="meta-label">Total Travelers</td>
+            <td>{{ trip.travellers }} traveler(s)</td>
+            <td class="meta-label">Total Allocated Budget</td>
+            <td>₹{{ "{:,.2f}".format(trip.budget) }}</td>
+        </tr>
+        <tr>
+            <td class="meta-label">Current Version</td>
+            <td>Snapshot v{{ itinerary.version if itinerary else '1' }}</td>
+            <td class="meta-label">AI Safety Score</td>
+            <td>{{ safety.safety_score if safety else '4' }} / 5</td>
+        </tr>
+    </table>
+
+    <!-- Safety & Contacts -->
+    <h2>🚨 Emergency & Safety Hotlines</h2>
+    <table class="meta-table" style="background-color: #fffaf0; border: 1px solid #feebc8;">
+        <tr>
+            <td class="meta-label" style="color: #c05621;">Police Support</td>
+            <td style="font-weight: bold; color: #c05621;">{{ safety.safety_data.emergency_contacts.police if safety else '100' }}</td>
+            <td class="meta-label" style="color: #c05621;">Women Helpline</td>
+            <td style="font-weight: bold; color: #c05621;">{{ safety.safety_data.emergency_contacts.women_helpline if safety else '1091' }}</td>
+        </tr>
+        <tr>
+            <td class="meta-label" style="color: #c05621;">Medical Services</td>
+            <td style="font-weight: bold; color: #c05621;">{{ safety.safety_data.emergency_contacts.medical if safety else '102' }}</td>
+            <td class="meta-label" style="color: #c05621;">Fire Control</td>
+            <td style="font-weight: bold; color: #c05621;">{{ safety.safety_data.emergency_contacts.fire if safety else '101' }}</td>
+        </tr>
+    </table>
+
+    {% if safety %}
+        <h3>📌 Safety Neighborhood Logs:</h3>
+        <table class="meta-table">
+            <tr>
+                <td style="width: 50%; vertical-align: top; border: 1px solid #e2e8f0; padding: 10px;">
+                    <span style="color: #2f855a; font-weight: bold;">🟢 Safe Areas:</span>
+                    <ul class="bullet-list">
+                        {% for zone in safety.safety_data.neighborhoods.safe_zones %}
+                            <li><strong>{{ zone.name }}</strong>: {{ zone.reason }}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+                <td style="width: 50%; vertical-align: top; border: 1px solid #e2e8f0; padding: 10px;">
+                    <span style="color: #c53030; font-weight: bold;">🔴 Exercise Caution:</span>
+                    <ul class="bullet-list">
+                        {% for zone in safety.safety_data.neighborhoods.caution_zones %}
+                            <li><strong>{{ zone.name }}</strong>: {{ zone.reason }}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+            </tr>
+        </table>
+    {% endif %}
+
+    <div class="page-break"></div>
+
+    <!-- Daily Timeline Itinerary -->
+    <h2>📅 Daily Timeline Itinerary</h2>
+    {% if itinerary and itinerary.ai_itinerary and itinerary.ai_itinerary.days %}
+        {% for day in itinerary.ai_itinerary.days %}
+            <div class="day-container">
+                <div class="day-header">Day {{ day.day_number }} – {{ day.date }}</div>
+                
+                <table class="slot-table">
+                    <!-- Morning -->
+                    <tr>
+                        <td class="slot-time">Morning</td>
+                        <td>
+                            <strong>{{ day.slots.morning.activity }}</strong><br>
+                            <span style="color: #718096; font-size: 9pt;">{{ day.slots.morning.description }}</span>
+                        </td>
+                        <td class="slot-cost">₹{{ "{:,.2f}".format(day.slots.morning.cost) }}</td>
+                    </tr>
+                    
+                    <!-- Afternoon -->
+                    <tr>
+                        <td class="slot-time">Afternoon</td>
+                        <td>
+                            <strong>{{ day.slots.afternoon.activity }}</strong><br>
+                            <span style="color: #718096; font-size: 9pt;">{{ day.slots.afternoon.description }}</span>
+                        </td>
+                        <td class="slot-cost">₹{{ "{:,.2f}".format(day.slots.afternoon.cost) }}</td>
+                    </tr>
+                    
+                    <!-- Evening -->
+                    <tr>
+                        <td class="slot-time">Evening</td>
+                        <td>
+                            <strong>{{ day.slots.evening.activity }}</strong><br>
+                            <span style="color: #718096; font-size: 9pt;">{{ day.slots.evening.description }}</span>
+                        </td>
+                        <td class="slot-cost">₹{{ "{:,.2f}".format(day.slots.evening.cost) }}</td>
+                    </tr>
+
+                    <!-- Transit -->
+                    <tr>
+                        <td class="slot-time" style="color: #4a5568;">Transit</td>
+                        <td>
+                            <strong>{{ day.transportation.mode }}</strong><br>
+                            <span style="color: #718096; font-size: 9pt;">{{ day.transportation.details }}</span>
+                        </td>
+                        <td class="slot-cost">₹{{ "{:,.2f}".format(day.transportation.cost) }}</td>
+                    </tr>
+                </table>
+
+                <!-- Restaurants recommendations -->
+                {% if day.restaurants %}
+                    <div style="background-color: #f7fafc; padding: 10px; border: 1px solid #e2e8f0; font-size: 9pt;">
+                        <strong>🍔 Recommended Local Dining:</strong>
+                        <ul style="margin: 5px 0 0 0; padding-left: 15px;">
+                            {% for rest in day.restaurants %}
+                                <li>
+                                    <strong>{{ rest.name }}</strong> ({{ rest.cuisine }}) - Dishes: {{ rest.recommended_dishes | join(', ') }} 
+                                    | Est. Cost per person: ₹{{ "{:,.2f}".format(rest.estimated_cost_per_person) }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p style="color: #a0aec0; font-style: italic;">No active itinerary generated yet, boss.</p>
+    {% endif %}
+
+    <div class="page-break"></div>
+
+    <!-- Budget Sheets -->
+    <h2>💰 Travel Budget Sheet</h2>
+    <table class="meta-table">
+        <tr>
+            <td class="meta-label">Total Budget</td>
+            <td>₹{{ "{:,.2f}".format(trip.budget) }}</td>
+            <td class="meta-label">Total Actually Spent</td>
+            <td style="color: #c53030; font-weight: bold;">₹{{ "{:,.2f}".format(total_spent) }}</td>
+            <td class="meta-label">Remaining Balance</td>
+            <td style="font-weight: bold; color: {% if remaining_balance >= 0 %}#2f855a{% else %}#c53030{% endif %};">
+                ₹{{ "{:,.2f}".format(remaining_balance) }}
+            </td>
+        </tr>
+    </table>
+
+    {% if expenses %}
+        <h3>Expense Transaction Logs:</h3>
+        <table class="expense-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th style="text-align: right;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for exp in expenses %}
+                    <tr>
+                        <td>{{ exp.date.strftime('%d %b %Y') }}</td>
+                        <td><span class="badge">{{ exp.category }}</span></td>
+                        <td>{{ exp.description or 'No description' }}</td>
+                        <td style="text-align: right; font-weight: bold;">₹{{ "{:,.2f}".format(exp.amount) }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color: #a0aec0; font-style: italic;">No expenses recorded yet.</p>
+    {% endif %}
+
+    {% if itinerary and itinerary.ai_itinerary %}
+        <div class="page-break"></div>
+        
+        <!-- Packing list & Tips -->
+        <h2>🧳 Packing Checklist & Tips</h2>
+        <table class="meta-table">
+            <tr>
+                <td style="width: 50%; vertical-align: top; border: 1px solid #e2e8f0; padding: 10px;">
+                    <span style="font-weight: bold; color: #2b6cb0;">🎒 Recommended Packing Items:</span>
+                    <ul class="bullet-list">
+                        {% for item in itinerary.ai_itinerary.packing_list %}
+                            <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+                <td style="width: 50%; vertical-align: top; border: 1px solid #e2e8f0; padding: 10px;">
+                    <span style="font-weight: bold; color: #2b6cb0;">💡 AI Smart Tips:</span>
+                    <ul class="bullet-list">
+                        {% for tip in itinerary.ai_itinerary.travel_tips %}
+                            <li>{{ tip }}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+            </tr>
+        </table>
+    {% endif %}
+
+    {% if auto_print %}
+    <script>
+        window.onload = function() {
+            window.print();
+        };
+    </script>
+    {% endif %}
+</body>
+</html>
