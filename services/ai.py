@@ -374,3 +374,122 @@ def generate_safety_assessment(destination):
         "common_scams": [{"name": "Overpriced unofficial taxis", "warning": "Always ask for taxi meters or use ride-hailing apps."}]
     }
     return 4, fallback_data
+
+def translate_phrase(text, target_language):
+    """
+    Translates text to the target language and provides a phonetic pronunciation guide.
+    Returns: {"translation": "...", "pronunciation": "..."}
+    """
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    model = os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash")
+    
+    if not api_key:
+        return {"translation": text, "pronunciation": "N/A"}
+        
+    prompt = f"""
+    Translate the following English travel phrase to {target_language}.
+    Provide the translation AND a simple, phonetic English-based pronunciation guide in parentheses for a tourist.
+    
+    Phrase: "{text}"
+    
+    Respond in JSON format ONLY:
+    {{
+      "translation": "translated text here",
+      "pronunciation": "phonetic guide here (e.g. bohn-zhoor)"
+    }}
+    """
+    
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "response_format": {"type": "json_object"}
+            },
+            timeout=10
+        )
+        if response.status_code == 200:
+            res_json = response.json()
+            content = res_json['choices'][0]['message']['content'].strip()
+            data = json.loads(content)
+            return {
+                "translation": data.get("translation", ""),
+                "pronunciation": data.get("pronunciation", "")
+            }
+    except Exception as e:
+        print(f"AI Translation Exception: {str(e)}")
+        
+    return {"translation": f"[Error translating to {target_language}]", "pronunciation": ""}
+
+def get_essential_phrases(destination, target_language):
+    """
+    Generates 5 essential travel phrases in the local language for a given destination.
+    """
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    model = os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash")
+    
+    if not api_key:
+        # Default fallback phrases
+        return [
+            {"english": "Hello", "translation": "Hola", "pronunciation": "oh-lah"},
+            {"english": "Thank you", "translation": "Gracias", "pronunciation": "grah-syahs"},
+            {"english": "Please", "translation": "Por favor", "pronunciation": "por fah-vor"},
+            {"english": "Where is the bathroom?", "translation": "¿Dónde está el baño?", "pronunciation": "dohn-deh es-tah el bah-nyoh"},
+            {"english": "Help", "translation": "Ayuda", "pronunciation": "ah-yoo-dah"}
+        ]
+        
+    prompt = f"""
+    Generate 5 essential travel phrases for a tourist visiting {destination} who needs to speak in {target_language}.
+    Each phrase should have the English phrase, the localized translation, and a phonetic pronunciation guide.
+    
+    Respond in JSON format ONLY:
+    {{
+      "phrases": [
+        {{
+          "english": "Hello / Good morning",
+          "translation": "local translation",
+          "pronunciation": "phonetic guide (e.g. bohn-zhoor)"
+        }},
+        ...
+      ]
+    }}
+    """
+    
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "response_format": {"type": "json_object"}
+            },
+            timeout=10
+        )
+        if response.status_code == 200:
+            res_json = response.json()
+            content = res_json['choices'][0]['message']['content'].strip()
+            data = json.loads(content)
+            return data.get("phrases", [])
+    except Exception as e:
+        print(f"AI Essential Phrases Exception: {str(e)}")
+        
+    return [
+        {"english": "Hello", "translation": "Hola", "pronunciation": "oh-lah"},
+        {"english": "Thank you", "translation": "Gracias", "pronunciation": "grah-syahs"},
+        {"english": "Please", "translation": "Por favor", "pronunciation": "por fah-vor"},
+        {"english": "Where is the bathroom?", "translation": "¿Dónde está el baño?", "pronunciation": "dohn-deh es-tah el bah-nyoh"},
+        {"english": "Help", "translation": "Ayuda", "pronunciation": "ah-yoo-dah"}
+    ]

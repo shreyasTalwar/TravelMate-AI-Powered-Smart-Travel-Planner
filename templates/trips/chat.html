@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+
+{% block title %}Group Chat - {{ trip.destination | capitalize }} - TravelMate{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 2rem;
+        height: calc(100vh - 180px);
+        min-height: 550px;
+        margin-top: 1rem;
+    }
+    
+    .chat-sidebar {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .chat-window {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+    }
+    
+    .sidebar-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+        background: var(--gray-50);
+    }
+    
+    .member-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        overflow-y: auto;
+        flex: 1;
+    }
+    
+    .member-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--gray-100);
+        transition: background 0.2s;
+    }
+    
+    .member-item:hover {
+        background: var(--gray-50);
+    }
+    
+    .member-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), #a855f7);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .member-info {
+        flex: 1;
+    }
+    
+    .member-name {
+        font-weight: 600;
+        color: var(--dark);
+        font-size: 0.9rem;
+    }
+    
+    .member-role {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+    }
+    
+    .role-badge {
+        padding: 0.15rem 0.4rem;
+        border-radius: 3px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    
+    .role-owner {
+        background: #fef3c7;
+        color: #d97706;
+    }
+    
+    .role-collab {
+        background: #e0f2fe;
+        color: #0284c7;
+    }
+    
+    .chat-header {
+        padding: 1.25rem 2rem;
+        border-bottom: 1px solid var(--gray-200);
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .chat-messages {
+        flex: 1;
+        padding: 2rem;
+        overflow-y: auto;
+        background: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+    
+    .message-bubble {
+        max-width: 70%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .message-bubble.incoming {
+        align-self: flex-start;
+    }
+    
+    .message-bubble.outgoing {
+        align-self: flex-end;
+    }
+    
+    .message-meta {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .message-bubble.outgoing .message-meta {
+        justify-content: flex-end;
+    }
+    
+    .message-content {
+        padding: 0.85rem 1.2rem;
+        border-radius: var(--radius-md);
+        font-size: 0.925rem;
+        line-height: 1.45;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    
+    .message-bubble.incoming .message-content {
+        background: white;
+        color: var(--dark);
+        border: 1px solid var(--gray-200);
+        border-top-left-radius: 0;
+    }
+    
+    .message-bubble.outgoing .message-content {
+        background: linear-gradient(135deg, var(--primary), #4f46e5);
+        color: white;
+        border-top-right-radius: 0;
+    }
+    
+    .chat-input-area {
+        padding: 1.25rem 2rem;
+        border-top: 1px solid var(--gray-200);
+        background: white;
+    }
+    
+    .chat-form {
+        display: flex;
+        gap: 1rem;
+    }
+    
+    .chat-input {
+        flex: 1;
+        border: 1px solid var(--gray-300);
+        border-radius: var(--radius-md);
+        padding: 0.85rem 1.2rem;
+        outline: none;
+        font-size: 0.95rem;
+        transition: border 0.2s, box-shadow 0.2s;
+    }
+    
+    .chat-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    
+    .invite-widget {
+        background: #f0fdf4;
+        border: 1px dashed #bbf7d0;
+        border-radius: var(--radius-md);
+        padding: 0.75rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: auto;
+        margin-bottom: 1.5rem;
+        margin-left: 1.5rem;
+        margin-right: 1.5rem;
+    }
+    
+    .code-badge {
+        font-family: monospace;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #16a34a;
+        letter-spacing: 1px;
+    }
+
+    .copy-btn {
+        background: none;
+        border: none;
+        color: var(--primary);
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 3px;
+        transition: background 0.2s;
+    }
+
+    .copy-btn:hover {
+        background: rgba(59, 130, 246, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 1rem; font-size: 0.9rem;">
+        <a href="{{ url_for('trips.dashboard') }}" style="color: var(--primary); text-decoration: none;">Dashboard</a> &gt;
+        <a href="{{ url_for('trips.view', trip_id=trip.id) }}" style="color: var(--primary); text-decoration: none;">{{ trip.destination | capitalize }}</a> &gt;
+        <span style="color: var(--gray-600);">Group Chat</span>
+    </div>
+
+    <div class="chat-layout" id="chat-layout-container" data-user-id="{{ session['user_id'] }}">
+        
+        <!-- Sidebar: Active Members & Invites -->
+        <div class="chat-sidebar">
+            <div class="sidebar-header">
+                <h3 style="font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>👥</span> Collaborators
+                </h3>
+            </div>
+            
+            <ul class="member-list" id="member-list">
+                {% for member in members %}
+                    <li class="member-item">
+                        <div class="member-avatar">
+                            {{ member.user.name[0] }}
+                        </div>
+                        <div class="member-info">
+                            <div class="member-name">{{ member.user.name }}</div>
+                            <div class="member-role">Joined {{ member.joined_at.strftime('%d %b') }}</div>
+                        </div>
+                        <span class="role-badge {% if member.role == 'owner' %}role-owner{% else %}role-collab{% endif %}">
+                            {{ member.role }}
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            <!-- Invite Widget -->
+            <div class="invite-widget">
+                <div>
+                    <div style="font-size: 0.75rem; color: #15803d; font-weight: 600;">Trip Invite Code</div>
+                    <div class="code-badge" id="invite-code-text">{{ trip.invite_code }}</div>
+                </div>
+                <button class="copy-btn" onclick="copyInviteCode()">📋 Copy</button>
+            </div>
+        </div>
+
+        <!-- Chat Main Area -->
+        <div class="chat-window">
+            <div class="chat-header">
+                <div>
+                    <h2 style="font-size: 1.25rem; margin: 0; text-transform: capitalize;">💬 {{ trip.destination }} Discussion</h2>
+                    <p style="font-size: 0.8rem; color: var(--gray-500); margin: 0;">Coordinate itinerary plans, expenses, and safety alerts</p>
+                </div>
+                <a href="{{ url_for('trips.view', trip_id=trip.id) }}" class="btn btn-outline" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+                    ⬅️ Back to Trip
+                </a>
+            </div>
+
+            <!-- Messages Stream -->
+            <div class="chat-messages" id="chat-messages">
+                {% if messages %}
+                    {% for msg in messages %}
+                        {% set is_sender = msg.user_id == session['user_id'] %}
+                        <div class="message-bubble {% if is_sender %}outgoing{% else %}incoming{% endif %}" data-msg-id="{{ msg.id }}">
+                            <div class="message-meta">
+                                <strong>{{ 'You' if is_sender else msg.user.name }}</strong>
+                                <span>&bull;</span>
+                                <span>{{ msg.created_at.strftime('%H:%M') }}</span>
+                            </div>
+                            <div class="message-content">
+                                {{ msg.message }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div id="no-messages-prompt" style="text-align: center; color: var(--gray-500); margin: auto; padding: 2rem;">
+                        <span style="font-size: 3rem; display: block; margin-bottom: 1rem;">💬</span>
+                        <h4>No messages yet</h4>
+                        <p style="font-size: 0.85rem;">Start typing below to chat with your travel companions, boss!</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Input area -->
+            <div class="chat-input-area">
+                <form class="chat-form" id="chat-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="text" class="chat-input" id="message-input" autocomplete="off" placeholder="Type a message to your group..." required>
+                    <button type="submit" class="btn btn-primary" style="padding: 0.85rem 1.75rem;">Send 🚀</button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const chatMessages = document.getElementById('chat-messages');
+    const chatForm = document.getElementById('chat-form');
+    const messageInput = document.getElementById('message-input');
+    const currentUserId = parseInt(document.getElementById('chat-layout-container').dataset.userId) || 0;
+    let lastMessageId = 0;
+
+    // Set lastMessageId from existing messages
+    const bubbles = document.querySelectorAll('.message-bubble');
+    if (bubbles.length > 0) {
+        lastMessageId = parseInt(bubbles[bubbles.length - 1].dataset.msgId) || 0;
+    }
+
+    // Scroll chat area to bottom
+    function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Auto-scroll on mount
+    scrollToBottom();
+
+    // Invite code copy function
+    function copyInviteCode() {
+        const codeText = document.getElementById('invite-code-text').textContent;
+        navigator.clipboard.writeText(codeText).then(() => {
+            alert("Invite code copied to clipboard, boss: " + codeText);
+        }).catch(err => {
+            console.error("Failed to copy text: ", err);
+        });
+    }
+
+    // Handle AJAX Message Sending
+    chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const msgText = messageInput.value.trim();
+        if (!msgText) return;
+
+        const csrfToken = chatForm.querySelector('input[name="csrf_token"]').value;
+
+        // Clear input field right away for visual responsiveness
+        messageInput.value = '';
+
+        const formData = new FormData();
+        formData.append('message', msgText);
+
+        fetch("{{ url_for('trips.chat_send', trip_id=trip.id) }}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                appendMessage(data.message, true);
+                scrollToBottom();
+            } else {
+                alert("Error sending message: " + data.error);
+            }
+        })
+        .catch(err => console.error("Send message fetch error: ", err));
+    });
+
+    // Append Message to view stream
+    function appendMessage(msg, isSender) {
+        // Remove 'no messages' prompt if visible
+        const prompt = document.getElementById('no-messages-prompt');
+        if (prompt) prompt.remove();
+
+        // Check if message is already added
+        if (document.querySelector(`[data-msg-id="${msg.id}"]`)) return;
+
+        lastMessageId = Math.max(lastMessageId, msg.id);
+
+        const timeStr = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        
+        const bubble = document.createElement('div');
+        bubble.className = `message-bubble ${isSender ? 'outgoing' : 'incoming'}`;
+        bubble.dataset.msgId = msg.id;
+
+        bubble.innerHTML = `
+            <div class="message-meta">
+                <strong>${isSender ? 'You' : msg.username}</strong>
+                <span>&bull;</span>
+                <span>${timeStr}</span>
+            </div>
+            <div class="message-content">
+                ${escapeHTML(msg.message)}
+            </div>
+        `;
+
+        chatMessages.appendChild(bubble);
+    }
+
+    // Escape HTML helpers to prevent XSS in chat messages
+    function escapeHTML(str) {
+        return str.replace(/[&<>'"]/g, 
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+
+    // Poll messages every 3 seconds
+    function pollMessages() {
+        fetch(`{{ url_for('trips.chat_messages', trip_id=trip.id) }}?since_id=${lastMessageId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.messages.length > 0) {
+                let shouldScroll = (chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight) < 150;
+                
+                data.messages.forEach(msg => {
+                    const isSender = msg.user_id === currentUserId;
+                    appendMessage(msg, isSender);
+                });
+                
+                if (shouldScroll) {
+                    scrollToBottom();
+                }
+            }
+        })
+        .catch(err => console.error("Error polling messages: ", err));
+    }
+
+    // Start polling interval
+    setInterval(pollMessages, 3000);
+</script>
+{% endblock %}

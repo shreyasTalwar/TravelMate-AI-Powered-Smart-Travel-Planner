@@ -13,6 +13,7 @@ class Trip(db.Model):
     travellers = db.Column(db.Integer, nullable=False, default=1)
     interests = db.Column(db.JSON, nullable=True)  # List of interests, e.g., ["adventure", "food"]
     status = db.Column(db.String(50), nullable=False, default='planned')  # 'planned', 'completed', 'cancelled'
+    invite_code = db.Column(db.String(6), unique=True, index=True, nullable=True)  # Invite code for group sharing
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
     # Relationship to user
@@ -30,5 +31,6 @@ class Trip(db.Model):
             'travellers': self.travellers,
             'interests': self.interests,
             'status': self.status,
+            'invite_code': self.invite_code,
             'created_at': self.created_at.isoformat()
         }

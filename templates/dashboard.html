@@ -10,9 +10,16 @@
             <h1 style="font-size: 2.25rem;">Hello, {{ user.name }}!</h1>
             <p style="color: var(--gray-600);">Welcome back. Start planning your next dream adventure or manage your upcoming trips.</p>
         </div>
-        <div style="display: flex; gap: 1rem;">
+        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
             <a href="{{ url_for('trips.create') }}" class="btn btn-primary">➕ Plan New Trip</a>
             <a href="{{ url_for('auth.profile') }}" class="btn btn-outline">👤 Edit Profile</a>
+            
+            <!-- Join Trip Form -->
+            <form action="{{ url_for('trips.join_trip') }}" method="POST" style="display: flex; gap: 0.5rem; align-items: center; margin: 0; background: white; padding: 0.25rem 0.5rem; border: 1px solid var(--gray-200); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="text" name="invite_code" placeholder="ENTER CODE" required style="border: none; outline: none; font-size: 0.8rem; font-weight: 700; width: 100px; text-transform: uppercase; padding: 0.4rem; text-align: center; letter-spacing: 0.5px;">
+                <button type="submit" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Join 🚀</button>
+            </form>
         </div>
     </div>
 
@@ -28,10 +35,20 @@
         </div>
         <!-- Weather Card (Phase 4 Active) -->
         <div style="background: linear-gradient(135deg, #3b82f6, #06b6d4); color: white; padding: 1.5rem; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); position: relative; overflow: hidden;">
-            <div style="position: absolute; right: -15px; top: -15px; font-size: 5rem; opacity: 0.15; pointer-events: none;">🌦️</div>
             <p style="color: rgba(255,255,255,0.8); font-size: 0.875rem; text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Weather Sync</p>
-            <h3 style="font-size: 1.25rem; font-family: var(--font-body); font-weight: 600; margin-bottom: 0.25rem;">Live Forecasts Active</h3>
-            <p style="font-size: 0.85rem; opacity: 0.9;">Weather forecasting is active, boss! Open any trip's details to view live forecasts and adapt routes.</p>
+            {% if next_trip_weather %}
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <h3 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 0.25rem; text-transform: capitalize;">{{ next_trip_weather.destination }}</h3>
+                        <p style="font-size: 0.85rem; opacity: 0.95; margin: 0;">{{ next_trip_weather.description }} &bull; {{ next_trip_weather.temp_avg }}°C</p>
+                    </div>
+                    <img src="http://openweathermap.org/img/wn/{{ next_trip_weather.icon }}@2x.png" alt="Weather Icon" style="width: 54px; height: 54px; margin-right: -10px;">
+                </div>
+            {% else %}
+                <div style="position: absolute; right: -15px; top: -15px; font-size: 5rem; opacity: 0.15; pointer-events: none;">🌦️</div>
+                <h3 style="font-size: 1.25rem; font-family: var(--font-body); font-weight: 600; margin-bottom: 0.25rem;">No Active Trips</h3>
+                <p style="font-size: 0.85rem; opacity: 0.9;">Plan an adventure to start syncing live weather forecasts, boss.</p>
+            {% endif %}
         </div>
     </div>
 

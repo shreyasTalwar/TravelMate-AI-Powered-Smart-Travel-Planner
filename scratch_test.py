@@ -2,41 +2,42 @@ import os
 import requests
 from dotenv import load_dotenv
 
-# Load environmental variables
+# Load environment variables
 load_dotenv()
 
-api_key = os.getenv("OPENROUTER_API_KEY")
-model = os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash")
+api_key = os.getenv("OPENWEATHER_API_KEY")
+destination = "Goa"
 
-print("--- Testing OpenRouter Integration ---")
-print(f"Using Model: {model}")
-print(f"API Key Prefix: {api_key[:12]}... (total length {len(api_key)})" if api_key else "No API Key found!")
+print(f"Loaded OPENWEATHER_API_KEY: {api_key}")
+if not api_key:
+    print("Error: OPENWEATHER_API_KEY is missing from environment.")
+    exit(1)
 
-url = "https://openrouter.ai/api/v1/chat/completions"
-headers = {
-    "Authorization": f"Bearer {api_key}",
-    "Content-Type": "application/json",
-    "HTTP-Referer": "https://github.com/travelmate", # Optional, for OpenRouter analytics
-    "X-Title": "TravelMate"
-}
-
-payload = {
-    "model": model,
-    "messages": [
-        {"role": "user", "content": "Hello, respond with a short message: 'OpenRouter connection successful!'"}
-    ],
-    "max_tokens": 100
-}
-
+# Step 1: Geocoding Request
+print("\n--- Testing Geocoding API ---")
+geo_url = f"http://api.openweathermap.org/geo/1.0/direct"
+geo_params = {"q": destination, "limit": 1, "appid": api_key}
 try:
-    response = requests.post(url, headers=headers, json=payload, timeout=10)
-    print(f"HTTP Status Code: {response.status_code}")
-    if response.status_code == 200:
-        res_data = response.json()
-        print("\nSuccess! OpenRouter Output:")
-        print(res_data['choices'][0]['message']['content'])
+    print(f"Requesting: {geo_url} with params {geo_params}")
+    response = requests.get(geo_url, params=geo_params, timeout=10)
+    print(f"Status Code: {response.status_code}")
+    print(f"Response: {response.text}")
+    
+    if response.status_code == 200 and response.json():
+        location = response.json()[0]
+        lat = location['lat']
+        lon = location['lon']
+        print(f"Success! Coordinates for {destination}: Lat {lat}, Lon {lon}")
+        
+        # Step 2: Forecast Request
+        print("\n--- Testing 5-Day Forecast API ---")
+        forecast_url = f"http://api.openweathermap.org/data/2.5/forecast"
+        forecast_params = {"lat": lat, "lon": lon, "units": "metric", "appid": api_key}
+        print(f"Requesting: {forecast_url} with params {forecast_params}")
+        f_response = requests.get(forecast_url, params=forecast_params, timeout=10)
+        print(f"Status Code: {f_response.status_code}")
+        print(f"Response (truncated): {f_response.text[:500]}")
     else:
-        print(f"\nFailed to connect. Error detail:")
-        print(response.text)
+        print("Geocoding returned empty results or failed.")
 except Exception as e:
-    print(f"\nConnection Error: {str(e)}")
+    print(f"Request failed with exception: {e}")

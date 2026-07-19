@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}Travel Utilities - {{ trip.destination | capitalize }} - TravelMate{% endblock %}
+
+{% block extra_css %}
+<style>
+    .util-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2.5rem;
+        margin-top: 1rem;
+    }
+    
+    @media (max-width: 900px) {
+        .util-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .util-card {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 2.5rem;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .rates-badge-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    
+    .rate-badge {
+        background: var(--gray-50);
+        border: 1px solid var(--gray-200);
+        padding: 0.75rem;
+        border-radius: var(--radius-md);
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    .phrase-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    
+    .phrase-card {
+        background: #f8fafc;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-md);
+        padding: 1rem 1.25rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .phrase-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .phrase-meta {
+        font-size: 0.75rem;
+        color: var(--gray-400);
+        text-transform: uppercase;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .phrase-translation {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin: 0.25rem 0;
+    }
+
+    .phrase-pronunciation {
+        font-size: 0.85rem;
+        color: var(--gray-600);
+        font-style: italic;
+    }
+
+    .kpi-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .kpi-item {
+        background: var(--gray-50);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+        text-align: center;
+    }
+    
+    .kpi-label {
+        font-size: 0.75rem;
+        color: var(--gray-400);
+        text-transform: uppercase;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+    
+    .kpi-val {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--dark);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="margin-top: 3rem; margin-bottom: 5rem;">
+    
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 1.5rem; font-size: 0.9rem;">
+        <a href="{{ url_for('trips.dashboard') }}" style="color: var(--primary); text-decoration: none;">Dashboard</a> &gt;
+        <a href="{{ url_for('trips.view', trip_id=trip.id) }}" style="color: var(--primary); text-decoration: none;">{{ trip.destination | capitalize }}</a> &gt;
+        <span style="color: var(--gray-600);">Travel Utilities</span>
+    </div>
+
+    <!-- Page Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 style="font-size: 2.25rem; margin-bottom: 0.25rem; text-transform: capitalize;">💱 {{ trip.destination }} Utilities</h1>
+            <p style="color: var(--gray-600); margin: 0;">Convert currencies and translate travel phrases with AI guidance</p>
+        </div>
+        <a href="{{ url_for('trips.view', trip_id=trip.id) }}" class="btn btn-outline">
+            ⬅️ Back to Trip
+        </a>
+    </div>
+
+    <!-- Budget Quick Convert Indicators -->
+    <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 2rem; box-shadow: var(--shadow-sm); margin-bottom: 2.5rem;">
+        <h3 style="font-size: 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>💰</span> Financial Sync in <strong style="color: var(--primary);">{{ default_target_currency }}</strong>
+        </h3>
+        
+        <div class="kpi-container">
+            <div class="kpi-item" style="border-left: 4px solid var(--primary);">
+                <div class="kpi-label">Converted Budget</div>
+                <div class="kpi-val" id="converted-budget-val">{{ default_target_currency }} {{ "{:,.2f}".format(converted_budget) }}</div>
+            </div>
+            <div class="kpi-item" style="border-left: 4px solid var(--danger);">
+                <div class="kpi-label">Converted Spent</div>
+                <div class="kpi-val" id="converted-spent-val">{{ default_target_currency }} {{ "{:,.2f}".format(converted_spent) }}</div>
+            </div>
+            <div class="kpi-item" style="border-left: 4px solid var(--success);">
+                <div class="kpi-label">Converted Remaining</div>
+                <div class="kpi-val" id="converted-remaining-val">{{ default_target_currency }} {{ "{:,.2f}".format(converted_remaining) }}</div>
+            </div>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--gray-500); margin: 0; text-align: center;">
+            Conversion based on live exchange rate cache (1 INR = {{ rates.get(default_target_currency, 0.0) }} {{ default_target_currency }})
+        </p>
+    </div>
+
+    <div class="util-grid">
+        
+        <!-- Left: Currency Converter -->
+        <div class="util-card">
+            <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>💵</span> Currency Calculator
+            </h2>
+            
+            <form id="converter-form" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                
+                <div class="form-group">
+                    <label for="amount" class="form-label">Amount</label>
+                    <input type="number" step="any" class="form-control" id="convert-amount-input" value="100" required>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="from_cur" class="form-label">From</label>
+                        <select class="form-control" id="from-cur-select">
+                            {% for cur in supported_currencies %}
+                                <option value="{{ cur }}" {% if cur == 'INR' %}selected{% endif %}>{{ cur }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="to_cur" class="form-label">To</label>
+                        <select class="form-control" id="to-cur-select">
+                            {% for cur in supported_currencies %}
+                                <option value="{{ cur }}" {% if cur == default_target_currency %}selected{% endif %}>{{ cur }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Convert Amount 🚀</button>
+            </form>
+            
+            <!-- Conversion Result Box -->
+            <div id="conversion-result-box" style="margin-top: 2rem; background: var(--gray-50); border: 1px solid var(--gray-200); padding: 1.5rem; border-radius: var(--radius-md); text-align: center; display: none;">
+                <p id="conversion-formula" style="font-size: 0.85rem; color: var(--gray-600); margin-bottom: 0.25rem;"></p>
+                <h3 id="conversion-result" style="font-size: 2rem; color: var(--success); margin: 0; font-weight: 800;"></h3>
+            </div>
+            
+            <!-- Rates Summary -->
+            <h4 style="margin-top: 2.5rem; margin-bottom: 0.5rem; font-size: 0.95rem; text-transform: uppercase; color: var(--gray-400); font-weight: 700;">Conversions from 1 INR</h4>
+            <div class="rates-badge-grid">
+                <div class="rate-badge">USD: ${{ "%.4f".format(rates.get('USD', 0.0)) }}</div>
+                <div class="rate-badge">EUR: €{{ "%.4f".format(rates.get('EUR', 0.0)) }}</div>
+                <div class="rate-badge">GBP: £{{ "%.4f".format(rates.get('GBP', 0.0)) }}</div>
+                <div class="rate-badge">AED: {{ "%.4f".format(rates.get('AED', 0.0)) }}</div>
+            </div>
+        </div>
+        
+        <!-- Right: AI Translator -->
+        <div class="util-card">
+            <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🗣️</span> AI Travel Translator
+            </h2>
+            
+            <form id="translator-form" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                
+                <div class="form-group">
+                    <label for="text" class="form-label">English Phrase</label>
+                    <input type="text" class="form-control" id="translate-text-input" placeholder="e.g., Where is the nearest train station?" required autocomplete="off">
+                </div>
+                
+                <div class="form-group">
+                    <label for="target_lang" class="form-label">Target Language</label>
+                    <select class="form-control" id="target-lang-select">
+                        <option value="Spanish" {% if default_target_language == 'Spanish' %}selected{% endif %}>Spanish (Español)</option>
+                        <option value="French" {% if default_target_language == 'French' %}selected{% endif %}>French (Français)</option>
+                        <option value="Japanese" {% if default_target_language == 'Japanese' %}selected{% endif %}>Japanese (日本語)</option>
+                        <option value="German" {% if default_target_language == 'German' %}selected{% endif %}>German (Deutsch)</option>
+                        <option value="Italian" {% if default_target_language == 'Italian' %}selected{% endif %}>Italian (Italiano)</option>
+                        <option value="Arabic" {% if default_target_language == 'Arabic' %}selected{% endif %}>Arabic (العربية)</option>
+                        <option value="Mandarin" {% if default_target_language == 'Mandarin' %}selected{% endif %}>Mandarin (普通话)</option>
+                        <option value="Hindi" {% if default_target_language == 'Hindi' %}selected{% endif %}>Hindi (हिन्दी)</option>
+                        <option value="Thai" {% if default_target_language == 'Thai' %}selected{% endif %}>Thai (ไทย)</option>
+                        <option value="Indonesian" {% if default_target_language == 'Indonesian' %}selected{% endif %}>Indonesian (Bahasa Indonesia)</option>
+                        <option value="Kannada" {% if default_target_language == 'Kannada' %}selected{% endif %}>Kannada (ಕನ್ನಡ)</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;" id="translate-btn">Translate Phrase ✨</button>
+            </form>
+            
+            <!-- Translation Result Box -->
+            <div id="translation-result-box" style="margin-top: 2rem; background: #eff6ff; border: 1px solid #bfdbfe; padding: 1.5rem; border-radius: var(--radius-md); display: none;">
+                <div style="font-size: 0.75rem; color: #1d4ed8; font-weight: 700; text-transform: uppercase; margin-bottom: 0.25rem;">AI Translation</div>
+                <h3 id="translated-text-output" style="font-size: 1.35rem; color: var(--dark); margin: 0 0 0.5rem 0; font-weight: 700;"></h3>
+                <p id="pronunciation-text-output" style="font-size: 0.9rem; color: var(--gray-600); margin: 0; font-style: italic;"></p>
+            </div>
+            
+            <!-- Essential Localized Phrases -->
+            <h4 style="margin-top: 2.5rem; margin-bottom: 0.5rem; font-size: 0.95rem; text-transform: uppercase; color: var(--gray-400); font-weight: 700;">Essential Phrases for {{ trip.destination | capitalize }}</h4>
+            <div class="phrase-list">
+                {% for phrase in essential_phrases %}
+                    <div class="phrase-card">
+                        <div class="phrase-meta">{{ phrase.english }}</div>
+                        <div class="phrase-translation">{{ phrase.translation }}</div>
+                        <div class="phrase-pronunciation">Pronounce: {{ phrase.pronunciation }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const converterForm = document.getElementById('converter-form');
+    const convertAmountInput = document.getElementById('convert-amount-input');
+    const fromCurSelect = document.getElementById('from-cur-select');
+    const toCurSelect = document.getElementById('to-cur-select');
+    const conversionResultBox = document.getElementById('conversion-result-box');
+    const conversionFormula = document.getElementById('conversion-formula');
+    const conversionResult = document.getElementById('conversion-result');
+
+    const translatorForm = document.getElementById('translator-form');
+    const translateTextInput = document.getElementById('translate-text-input');
+    const targetLangSelect = document.getElementById('target-lang-select');
+    const translateBtn = document.getElementById('translate-btn');
+    const translationResultBox = document.getElementById('translation-result-box');
+    const translatedTextOutput = document.getElementById('translated-text-output');
+    const pronunciationTextOutput = document.getElementById('pronunciation-text-output');
+
+    // Handle AJAX Currency Conversion
+    converterForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const amt = parseFloat(convertAmountInput.value) || 0;
+        const fromVal = fromCurSelect.value;
+        const toVal = toCurSelect.value;
+        const csrfToken = converterForm.querySelector('input[name="csrf_token"]').value;
+
+        const formData = new FormData();
+        formData.append('amount', amt);
+        formData.append('from_cur', fromVal);
+        formData.append('to_cur', toVal);
+
+        fetch("{{ url_for('trips.utilities_convert', trip_id=trip.id) }}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                conversionFormula.textContent = `${data.amount} ${data.from_cur} =`;
+                conversionResult.textContent = `${data.to_cur} ${data.converted}`;
+                conversionResultBox.style.display = 'block';
+            } else {
+                alert("Error during conversion: " + data.error);
+            }
+        })
+        .catch(err => console.error("Converter fetch error: ", err));
+    });
+
+    // Handle AJAX Translation
+    translatorForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = translateTextInput.value.trim();
+        const targetLang = targetLangSelect.value;
+        const csrfToken = translatorForm.querySelector('input[name="csrf_token"]').value;
+
+        if (!text) return;
+
+        translateBtn.disabled = true;
+        translateBtn.textContent = 'Translating... ⏳';
+
+        const formData = new FormData();
+        formData.append('text', text);
+        formData.append('target_lang', targetLang);
+
+        fetch("{{ url_for('trips.utilities_translate', trip_id=trip.id) }}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            translateBtn.disabled = false;
+            translateBtn.textContent = 'Translate Phrase ✨';
+            
+            if (data.success) {
+                translatedTextOutput.textContent = data.translation;
+                pronunciationTextOutput.textContent = data.pronunciation ? `Pronounce: ${data.pronunciation}` : '';
+                translationResultBox.style.display = 'block';
+            } else {
+                alert("Translation failed: " + data.error);
+            }
+        })
+        .catch(err => {
+            translateBtn.disabled = false;
+            translateBtn.textContent = 'Translate Phrase ✨';
+            console.error("Translation fetch error: ", err);
+        });
+    });
+</script>
+{% endblock %}

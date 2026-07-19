@@ -4,14 +4,15 @@ TravelMate is a premium, full-stack, AI-powered travel planning SaaS platform. T
 
 ## 🚀 Tech Stack
 
-- **Frontend**: HTML5, CSS3 (Custom Variables, CSS Grids, Glassmorphism, Micro-animations), Vanilla JavaScript.
-- **Backend**: Python, Flask.
-- **Database**: MySQL (configured with Flask-SQLAlchemy and Flask-Migrate).
+- **Frontend**: HTML5, CSS3 (Custom Variables, CSS Grids, Glassmorphism, Micro-animations), Vanilla JavaScript, Chart.js, Leaflet.js.
+- **Backend**: Python, Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-Limiter, xhtml2pdf.
+- **Database**: MySQL.
 - **APIs**:
-  - **OpenRouter (Gemini 2.5 Flash)**: AI Itinerary & weather adaptation.
+  - **OpenRouter (Gemini 2.5 Flash)**: AI Itinerary generation, weather adaptations, safety assessments, and phrase translations.
   - **OpenWeather API**: Synchronized live weather forecasts.
   - **OpenStreetMap & Leaflet.js**: Geolocation mapping canvas.
   - **Nominatim & Overpass API**: Coordinate resolving and localized Points of Interest (POIs).
+  - **ExchangeRate API**: Real-time foreign exchange rate caching.
 
 ---
 
@@ -47,6 +48,31 @@ TravelMate is a premium, full-stack, AI-powered travel planning SaaS platform. T
 - Queried Overpass API to fetch nearby Hotels, Restaurants, Attractions, Hospitals, Police stations, and ATMs.
 - Structured filter switches allowing users to toggle marker categories on the map in real-time.
 - Cached map POI results in MySQL database.
+
+### ✅ Phase 6: Budget Planner & Cost Tracker
+- Interactive manual expense ledger allowing travelers to log costs categorized by Hotel, Food, Transport, Shopping, Activities, and Emergency Funds.
+- Built-in AI cost extraction that parses the active itinerary to sum predicted budgets.
+- Visual spent-breakdown doughnut charts and side-by-side estimation comparison graphs using Chart.js.
+- CSV export logs for personal auditing.
+
+### ✅ Phase 7: Women's Safety Module
+- AI-graded Travel Safety Scores (1-5 scale) providing localized safety guidelines, common tourist scam warning lists, and emergency helper phone numbers.
+- Emergency Speed Dial buttons for Police, Medical, Fire, and Women's Helplines.
+- Pulse Panic SOS trigger counting down for 5 seconds (with audio beeps), requesting browser Geolocation coordinates, and broadcasting coordinates to emergency server logs.
+
+### ✅ Phase 8: Offline PDF Exporter
+- PDF compilation engines utilizing `xhtml2pdf` to output styled A4 printable snapshots of complete itineraries.
+- "Print View" route enabling native browser printing with page-break cleanups.
+
+### ✅ Phase 9: Live Group Chat & Sharing
+- 6-character unique invitation codes generated automatically for each trip.
+- Dashboard invite code inputs enabling users to join travel groups as collaborators.
+- Real-time collaborative chat rooms styled with glassmorphism, supporting instant messaging synchronized via AJAX polling.
+
+### ✅ Phase 10: Language & Currency Converter
+- Live currency converters referencing public APIs (`open.er-api.com`) with 12-hour caching limits.
+- Dynamic conversion banners showing overall trip budgets and expenses in foreign denominations (USD, EUR, GBP, JPY, AED, etc.).
+- AI-powered travel translations converting customized phrases to destination languages, complete with phonetic pronunciation guides.
 
 ---
 

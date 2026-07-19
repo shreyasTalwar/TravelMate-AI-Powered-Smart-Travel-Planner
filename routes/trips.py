@@ -1,10 +1,11 @@
 from datetime import date, datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app, jsonify, make_response
 from extensions import db
-from models import Trip, User, Itinerary, Expense, SafetyAssessment
+from models import Trip, User, Itinerary, Expense, SafetyAssessment, TripMember, ChatMessage
 from routes.forms import TripForm
 from utils.decorators import login_required
-from services.ai import generate_itinerary_data, adapt_itinerary_for_weather
+from services.ai import generate_itinerary_data, adapt_itinerary_for_weather, translate_phrase, get_essential_phrases
+from services.currency import get_exchange_rates, convert_amount, SUPPORTED_CURRENCIES
 from services.weather import get_weather_forecast
 
 trips_bp = Blueprint('trips', __name__)
@@ -39,6 +40,19 @@ def dashboard():
     total_trips = len(user_trips)
     total_budget = sum([float(t.budget) for t in user_trips])
     
+    # Retrieve weather forecast for the closest upcoming trip
+    next_trip_weather = None
+    if upcoming_trips:
+        next_trip = upcoming_trips[0]
+        forecast = get_weather_forecast(next_trip.destination)
+        if forecast:
+            next_trip_weather = {
+                'destination': next_trip.destination,
+                'temp_avg': forecast[0]['temp_avg'],
+                'description': forecast[0]['description'],
+                'icon': forecast[0]['icon']
+            }
+            
     return render_template(
         'dashboard.html', 
         user=user, 
@@ -46,8 +60,17 @@ def dashboard():
         recent_trips=recent_trips,
         total_trips=total_trips,
         total_budget=total_budget,
+        next_trip_weather=next_trip_weather,
         popular_destinations=POPULAR_DESTINATIONS
     )
+
+def generate_unique_invite_code():
+    import random
+    import string
+    while True:
+        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        if not Trip.query.filter_by(invite_code=code).first():
+            return code
 
 @trips_bp.route('/trips/create', methods=['GET', 'POST'])
 @login_required
@@ -62,6 +85,7 @@ def create():
         # Retrieve interests from request form
         selected_interests = request.form.getlist('interests')
         
+        invite_code = generate_unique_invite_code()
         trip = Trip(
             user_id=session['user_id'],
             destination=form.destination.data.strip(),
@@ -70,12 +94,23 @@ def create():
             end_date=form.end_date.data,
             travellers=form.travellers.data,
             interests=selected_interests,
-            status='planned'
+            status='planned',
+            invite_code=invite_code
         )
         
         try:
             db.session.add(trip)
             db.session.commit()
+            
+            # Register creator as owner member
+            member = TripMember(
+                trip_id=trip.id,
+                user_id=session['user_id'],
+                role='owner'
+            )
+            db.session.add(member)
+            db.session.commit()
+            
             flash('Trip planned successfully!', 'success')
             return redirect(url_for('trips.dashboard'))
         except Exception as e:
@@ -88,7 +123,23 @@ def create():
 @trips_bp.route('/trips/<int:trip_id>')
 @login_required
 def view(trip_id):
-    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    trip = Trip.query.get_or_404(trip_id)
+    is_member = TripMember.query.filter_by(trip_id=trip.id, user_id=session['user_id']).first()
+    
+    # Self-heal invite code if missing
+    if not trip.invite_code:
+        trip.invite_code = generate_unique_invite_code()
+        db.session.commit()
+        
+    # Self-heal owner registration if missing
+    if not is_member and trip.user_id == session['user_id']:
+        is_member = TripMember(trip_id=trip.id, user_id=session['user_id'], role='owner')
+        db.session.add(is_member)
+        db.session.commit()
+        
+    if not is_member:
+        flash("You do not have permission to access this trip.", "danger")
+        return redirect(url_for('trips.dashboard'))
     
     # Retrieve specific version if requested in URL (e.g. ?version=2), else get the latest version
     version_req = request.args.get('version', type=int)
@@ -103,6 +154,9 @@ def view(trip_id):
     
     # Fetch weather forecast
     forecast = get_weather_forecast(trip.destination)
+    
+    # Fetch active trip members
+    members = TripMember.query.filter_by(trip_id=trip.id).all()
         
     return render_template(
         'trips/view.html', 
@@ -110,13 +164,18 @@ def view(trip_id):
         itinerary=itinerary, 
         version_list=version_list,
         current_version=itinerary.version if itinerary else None,
-        forecast=forecast
+        forecast=forecast,
+        members=members,
+        is_owner=(trip.user_id == session['user_id'])
     )
 
 @trips_bp.route('/trips/<int:trip_id>/generate-itinerary', methods=['POST'])
 @login_required
 def generate_itinerary(trip_id):
-    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        flash("You do not have permission to access this trip.", "danger")
+        return redirect(url_for('trips.dashboard'))
     
     trip_data = {
         'destination': trip.destination,
@@ -156,7 +215,10 @@ def generate_itinerary(trip_id):
 @trips_bp.route('/trips/<int:trip_id>/adapt-weather', methods=['POST'])
 @login_required
 def adapt_weather(trip_id):
-    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        flash("You do not have permission to access this trip.", "danger")
+        return redirect(url_for('trips.dashboard'))
     
     # Retrieve the latest generated itinerary
     itinerary = Itinerary.query.filter_by(trip_id=trip.id).order_by(Itinerary.version.desc()).first()
@@ -262,7 +324,9 @@ def delete(trip_id):
 @trips_bp.route('/api/trips/<int:trip_id>/map-data', methods=['GET'])
 @login_required
 def get_trip_map_data(trip_id):
-    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        return jsonify({"success": False, "error": "Access denied"}), 403
     
     from services.maps import get_destination_map_data
     try:
@@ -281,7 +345,10 @@ def get_trip_map_data(trip_id):
 @trips_bp.route('/trips/<int:trip_id>/budget', methods=['GET'])
 @login_required
 def budget(trip_id):
-    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        flash("You do not have permission to access this trip.", "danger")
+        return redirect(url_for('trips.dashboard'))
     
     # Retrieve all manual expenses
     expenses = Expense.query.filter_by(trip_id=trip.id).order_by(Expense.date.desc()).all()
@@ -341,7 +408,10 @@ def budget(trip_id):
 @trips_bp.route('/trips/<int:trip_id>/budget/add', methods=['POST'])
 @login_required
 def add_expense(trip_id):
-    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        flash("You do not have permission to access this trip.", "danger")
+        return redirect(url_for('trips.dashboard'))
     
     category = request.form.get('category')
     amount = request.form.get('amount')
@@ -374,7 +444,10 @@ def add_expense(trip_id):
 @trips_bp.route('/trips/<int:trip_id>/budget/delete/<int:expense_id>', methods=['POST'])
 @login_required
 def delete_expense(trip_id, expense_id):
-    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        flash("You do not have permission to access this trip.", "danger")
+        return redirect(url_for('trips.dashboard'))
     expense = Expense.query.filter_by(id=expense_id, trip_id=trip.id).first_or_404()
     
     try:
@@ -391,7 +464,10 @@ def delete_expense(trip_id, expense_id):
 @trips_bp.route('/trips/<int:trip_id>/budget/export', methods=['GET'])
 @login_required
 def export_budget(trip_id):
-    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        flash("You do not have permission to access this trip.", "danger")
+        return redirect(url_for('trips.dashboard'))
     expenses = Expense.query.filter_by(trip_id=trip.id).order_by(Expense.date.asc()).all()
     
     import io
@@ -415,7 +491,10 @@ def export_budget(trip_id):
 @trips_bp.route('/trips/<int:trip_id>/safety', methods=['GET'])
 @login_required
 def safety(trip_id):
-    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        flash("You do not have permission to access this trip.", "danger")
+        return redirect(url_for('trips.dashboard'))
     
     destination_key = trip.destination.strip().lower()
     
@@ -462,10 +541,31 @@ def safety(trip_id):
             
     return render_template('trips/safety.html', trip=trip, assessment=assessment)
 
+def get_trip_and_verify_member(trip_id):
+    trip = Trip.query.get_or_404(trip_id)
+    is_member = TripMember.query.filter_by(trip_id=trip.id, user_id=session['user_id']).first()
+    
+    # Self-heal invite code if missing
+    if not trip.invite_code:
+        trip.invite_code = generate_unique_invite_code()
+        db.session.commit()
+        
+    # Self-heal owner registration if missing
+    if not is_member and trip.user_id == session['user_id']:
+        is_member = TripMember(trip_id=trip.id, user_id=session['user_id'], role='owner')
+        db.session.add(is_member)
+        db.session.commit()
+        
+    if not is_member:
+        return None
+    return trip
+
 @trips_bp.route('/trips/<int:trip_id>/safety/alert', methods=['POST'])
 @login_required
 def safety_alert(trip_id):
-    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        return jsonify({"success": False, "error": "Access denied"}), 403
     
     lat = request.json.get('lat')
     lon = request.json.get('lon')
@@ -481,7 +581,10 @@ def safety_alert(trip_id):
 @trips_bp.route('/trips/<int:trip_id>/export-pdf')
 @login_required
 def export_pdf(trip_id):
-    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        flash("You do not have permission to access this trip.", "danger")
+        return redirect(url_for('trips.dashboard'))
     
     # Retrieve all components
     itinerary = Itinerary.query.filter_by(trip_id=trip.id).order_by(Itinerary.version.desc()).first()
@@ -527,7 +630,10 @@ def export_pdf(trip_id):
 @trips_bp.route('/trips/<int:trip_id>/print')
 @login_required
 def print_itinerary(trip_id):
-    trip = Trip.query.filter_by(id=trip_id, user_id=session['user_id']).first_or_404()
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        flash("You do not have permission to access this trip.", "danger")
+        return redirect(url_for('trips.dashboard'))
     
     # Retrieve all components
     itinerary = Itinerary.query.filter_by(trip_id=trip.id).order_by(Itinerary.version.desc()).first()
@@ -550,3 +656,204 @@ def print_itinerary(trip_id):
         today_date=date.today().strftime('%d %b %Y'),
         auto_print=True
     )
+
+@trips_bp.route('/trips/join', methods=['POST'])
+@login_required
+def join_trip():
+    code = request.form.get('invite_code', '').strip().upper()
+    if not code:
+        flash("Please enter an invitation code.", "danger")
+        return redirect(url_for('trips.dashboard'))
+        
+    trip = Trip.query.filter_by(invite_code=code).first()
+    if not trip:
+        flash("Invalid invitation code. Please check and try again.", "danger")
+        return redirect(url_for('trips.dashboard'))
+        
+    # Check if already a member
+    member = TripMember.query.filter_by(trip_id=trip.id, user_id=session['user_id']).first()
+    if member:
+        flash(f"You are already a member of the trip to {trip.destination}!", "info")
+        return redirect(url_for('trips.view', trip_id=trip.id))
+        
+    try:
+        new_member = TripMember(
+            trip_id=trip.id,
+            user_id=session['user_id'],
+            role='collaborator'
+        )
+        db.session.add(new_member)
+        db.session.commit()
+        flash(f"Successfully joined the trip to {trip.destination}!", "success")
+        return redirect(url_for('trips.view', trip_id=trip.id))
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Failed to join trip: {str(e)}", "danger")
+        current_app.logger.error(f"Join Trip Error: {str(e)}")
+        return redirect(url_for('trips.dashboard'))
+
+@trips_bp.route('/trips/<int:trip_id>/chat', methods=['GET'])
+@login_required
+def chat(trip_id):
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        flash("You do not have permission to access this trip.", "danger")
+        return redirect(url_for('trips.dashboard'))
+        
+    members = TripMember.query.filter_by(trip_id=trip.id).all()
+    messages = ChatMessage.query.filter_by(trip_id=trip.id).order_by(ChatMessage.created_at.asc()).all()
+    
+    return render_template(
+        'trips/chat.html',
+        trip=trip,
+        members=members,
+        messages=messages
+    )
+
+@trips_bp.route('/trips/<int:trip_id>/chat/send', methods=['POST'])
+@login_required
+def chat_send(trip_id):
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        return jsonify({"success": False, "error": "Access denied"}), 403
+        
+    message_text = request.form.get('message', '').strip()
+    if not message_text:
+        return jsonify({"success": False, "error": "Empty message"}), 400
+        
+    try:
+        msg = ChatMessage(
+            trip_id=trip.id,
+            user_id=session['user_id'],
+            message=message_text
+        )
+        db.session.add(msg)
+        db.session.commit()
+        return jsonify({
+            "success": True,
+            "message": msg.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Failed to save message: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@trips_bp.route('/trips/<int:trip_id>/chat/messages', methods=['GET'])
+@login_required
+def chat_messages(trip_id):
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        return jsonify({"success": False, "error": "Access denied"}), 403
+        
+    since_id = request.args.get('since_id', type=int, default=0)
+    messages = ChatMessage.query.filter(
+        ChatMessage.trip_id == trip.id,
+        ChatMessage.id > since_id
+    ).order_by(ChatMessage.created_at.asc()).all()
+    
+    return jsonify({
+        "success": True,
+        "messages": [msg.to_dict() for msg in messages]
+    })
+
+# Destination utilities default mapping (currency & language)
+DESTINATION_UTILITIES_MAPPING = {
+    "goa": {"currency": "INR", "language": "Hindi"},
+    "mumbai": {"currency": "INR", "language": "Hindi"},
+    "delhi": {"currency": "INR", "language": "Hindi"},
+    "bangalore": {"currency": "INR", "language": "Kannada"},
+    "paris": {"currency": "EUR", "language": "French"},
+    "tokyo": {"currency": "JPY", "language": "Japanese"},
+    "london": {"currency": "GBP", "language": "English"},
+    "new york": {"currency": "USD", "language": "English"},
+    "dubai": {"currency": "AED", "language": "Arabic"},
+    "singapore": {"currency": "SGD", "language": "Mandarin"},
+    "sydney": {"currency": "AUD", "language": "English"},
+    "rome": {"currency": "EUR", "language": "Italian"},
+    "madrid": {"currency": "EUR", "language": "Spanish"},
+    "berlin": {"currency": "EUR", "language": "German"},
+    "bangkok": {"currency": "THB", "language": "Thai"},
+    "bali": {"currency": "IDR", "language": "Indonesian"}
+}
+
+@trips_bp.route('/trips/<int:trip_id>/utilities', methods=['GET'])
+@login_required
+def utilities(trip_id):
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        flash("You do not have permission to access this trip.", "danger")
+        return redirect(url_for('trips.dashboard'))
+        
+    dest_key = trip.destination.strip().lower()
+    mapping = DESTINATION_UTILITIES_MAPPING.get(dest_key, {"currency": "USD", "language": "Spanish"})
+    
+    default_target_currency = mapping["currency"]
+    default_target_language = mapping["language"]
+    
+    # Pre-populate essential local phrases using AI
+    essential_phrases = get_essential_phrases(trip.destination, default_target_language)
+    
+    # Calculate converted budget & total spent
+    expenses = Expense.query.filter_by(trip_id=trip.id).all()
+    total_spent_inr = sum(float(exp.amount) for exp in expenses)
+    remaining_balance_inr = float(trip.budget) - total_spent_inr
+    
+    converted_budget = convert_amount(trip.budget, "INR", default_target_currency)
+    converted_spent = convert_amount(total_spent_inr, "INR", default_target_currency)
+    converted_remaining = convert_amount(remaining_balance_inr, "INR", default_target_currency)
+    
+    # Fetch exchange rate to USD/EUR/GBP/etc from INR
+    rates = get_exchange_rates("INR")
+    
+    return render_template(
+        'trips/utilities.html',
+        trip=trip,
+        default_target_currency=default_target_currency,
+        default_target_language=default_target_language,
+        essential_phrases=essential_phrases,
+        converted_budget=converted_budget,
+        converted_spent=converted_spent,
+        converted_remaining=converted_remaining,
+        supported_currencies=SUPPORTED_CURRENCIES,
+        rates=rates
+    )
+
+@trips_bp.route('/trips/<int:trip_id>/utilities/translate', methods=['POST'])
+@login_required
+def utilities_translate(trip_id):
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        return jsonify({"success": False, "error": "Access denied"}), 403
+        
+    text = request.form.get('text', '').strip()
+    target_lang = request.form.get('target_lang', 'Spanish').strip()
+    
+    if not text:
+        return jsonify({"success": False, "error": "Empty text"}), 400
+        
+    res = translate_phrase(text, target_lang)
+    return jsonify({
+        "success": True,
+        "translation": res["translation"],
+        "pronunciation": res["pronunciation"]
+    })
+
+@trips_bp.route('/trips/<int:trip_id>/utilities/convert', methods=['POST'])
+@login_required
+def utilities_convert(trip_id):
+    trip = get_trip_and_verify_member(trip_id)
+    if not trip:
+        return jsonify({"success": False, "error": "Access denied"}), 403
+        
+    amount = request.form.get('amount', type=float, default=0.0)
+    from_cur = request.form.get('from_cur', 'INR').strip().upper()
+    to_cur = request.form.get('to_cur', 'USD').strip().upper()
+    
+    converted = convert_amount(amount, from_cur, to_cur)
+    return jsonify({
+        "success": True,
+        "amount": amount,
+        "converted": round(converted, 2),
+        "from_cur": from_cur,
+        "to_cur": to_cur
+    })

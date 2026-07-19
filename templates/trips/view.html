@@ -74,6 +74,8 @@
         from { opacity: 0; transform: translateY(5px); }
         to { opacity: 1; transform: translateY(0); }
     }
+    .role-owner-color { color: #d97706; }
+    .role-collab-color { color: #0284c7; }
 </style>
 {% endblock %}
 
@@ -131,6 +133,7 @@
             </div>
             
             <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;">
+                <a href="{{ url_for('trips.chat', trip_id=trip.id) }}" class="btn btn-primary" style="padding: 0.5rem 1.25rem; background: linear-gradient(135deg, var(--primary), #4f46e5);">💬 Group Chat</a>
                 <a href="{{ url_for('trips.export_pdf', trip_id=trip.id) }}" class="btn btn-outline" style="padding: 0.5rem 1rem; border-color: var(--primary); color: var(--primary);">📄 Export PDF</a>
                 <a href="{{ url_for('trips.print_itinerary', trip_id=trip.id) }}" target="_blank" class="btn btn-outline" style="padding: 0.5rem 1rem; border-color: var(--info); color: var(--info);">🖨️ Print View</a>
                 <a href="{{ url_for('trips.edit', trip_id=trip.id) }}" class="btn btn-outline" style="padding: 0.5rem 1rem;">✏️ Edit Details</a>
@@ -355,6 +358,48 @@
                             <li style="margin-bottom: 0.5rem;">{{ tip }}</li>
                         {% endfor %}
                     </ul>
+                </div>
+
+                <!-- Group Collaboration Card (Phase 9) -->
+                <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 2rem; box-shadow: var(--shadow-sm); margin-bottom: 2.5rem; border-left: 5px solid #a855f7;">
+                    <h3 style="font-size: 1.2rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span>👥</span> Group Collaboration
+                    </h3>
+                    <div style="background: #faf5ff; border: 1px dashed #d8b4fe; border-radius: var(--radius-md); padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                        <div>
+                            <div style="font-size: 0.7rem; color: #7e22ce; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Invite Code</div>
+                            <div style="font-family: monospace; font-size: 1.15rem; font-weight: 800; color: #7e22ce; letter-spacing: 0.5px;">{{ trip.invite_code }}</div>
+                        </div>
+                        <button onclick="navigator.clipboard.writeText('{{ trip.invite_code }}'); alert('Invite code copied, boss: {{ trip.invite_code }}');" style="background: none; border: none; color: var(--primary); font-size: 0.75rem; font-weight: 700; cursor: pointer;">📋 Copy</button>
+                    </div>
+                    <a href="{{ url_for('trips.chat', trip_id=trip.id) }}" class="btn btn-secondary btn-block" style="background-color: #a855f7; width: 100%; border-color: #a855f7; margin-bottom: 1rem;">
+                        💬 Open Group Chat
+                    </a>
+                    <div style="font-size: 0.8rem; color: var(--gray-400); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem;">Trip Members ({{ members | length }})</div>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        {% for mem in members %}
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">{{ mem.user.name[0] }}</div>
+                                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--dark);">{{ mem.user.name }}</span>
+                                </div>
+                                <span class="{% if mem.role == 'owner' %}role-owner-color{% else %}role-collab-color{% endif %}" style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase;">{{ mem.role }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Travel Utilities Link Card (Phase 10) -->
+                <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-200); padding: 2rem; box-shadow: var(--shadow-sm); margin-bottom: 2.5rem; border-left: 5px solid var(--primary);">
+                    <h3 style="font-size: 1.2rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span>💱</span> Language & Currency
+                    </h3>
+                    <p style="font-size: 0.85rem; color: var(--gray-600); line-height: 1.5; margin-bottom: 1.25rem;">
+                        Access live foreign exchange rate calculators and translate customized phrases with phonetic pronunciation helpers.
+                    </p>
+                    <a href="{{ url_for('trips.utilities', trip_id=trip.id) }}" class="btn btn-secondary btn-block" style="background-color: var(--primary); width: 100%; border-color: var(--primary);">
+                        🌐 Open Travel Utilities
+                    </a>
                 </div>
 
                 <!-- Budget Planner Link Card (Phase 6) -->
