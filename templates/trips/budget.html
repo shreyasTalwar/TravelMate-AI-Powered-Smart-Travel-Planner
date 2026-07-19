@@ -34,10 +34,17 @@
     }
     .progress-bar-fill {
         height: 100%;
-        background-color: var(--primary);
         border-radius: 50px;
         transition: width 0.5s ease-out;
     }
+    /* Utility colors to prevent inline jinja style warnings */
+    .text-success { color: var(--success) !important; }
+    .text-danger { color: var(--danger) !important; }
+    .text-warning { color: var(--warning) !important; }
+    .text-info { color: var(--info) !important; }
+    .bg-success { background-color: var(--success) !important; }
+    .bg-warning { background-color: var(--warning) !important; }
+    .bg-danger { background-color: var(--danger) !important; }
 </style>
 {% endblock %}
 
@@ -65,17 +72,17 @@
         </div>
         <div class="kpi-card">
             <p class="kpi-title">Total Spent</p>
-            <h3 class="kpi-value" style="color: var(--danger);">₹{{ "{:,.2f}".format(total_spent) }}</h3>
+            <h3 class="kpi-value text-danger">₹{{ "{:,.2f}".format(total_spent) }}</h3>
         </div>
         <div class="kpi-card">
             <p class="kpi-title">Remaining Balance</p>
-            <h3 class="kpi-value" style="color: {% if remaining_balance >= 0 %}var(--success){% else %}var(--danger){% endif %};">
+            <h3 class="kpi-value {% if remaining_balance >= 0 %}text-success{% else %}text-danger{% endif %}">
                 ₹{{ "{:,.2f}".format(remaining_balance) }}
             </h3>
         </div>
         <div class="kpi-card">
             <p class="kpi-title">AI Itinerary Estimate</p>
-            <h3 class="kpi-value" style="color: var(--info);">
+            <h3 class="kpi-value text-info">
                 ₹{{ "{:,.2f}".format(ai_estimated_total) }}
             </h3>
         </div>
@@ -91,7 +98,8 @@
             </span>
         </div>
         <div class="progress-bar-container">
-            <div class="progress-bar-fill" style="width: {% if percent > 100 %}100{% else %}{{ percent }}{% endif %}%; background-color: {% if percent > 90 %}var(--danger){% elif percent > 70 %}var(--warning){% else %}var(--success){% endif %};"></div>
+            <div class="progress-bar-fill {% if percent > 90 %}bg-danger{% elif percent > 70 %}bg-warning{% else %}bg-success{% endif %}" 
+                 style="width: {{ 100 if percent > 100 else percent }}%;"></div>
         </div>
         <p style="font-size: 0.85rem; color: var(--gray-600); margin: 0;">
             {% if remaining_balance > 0 %}
@@ -203,6 +211,28 @@
 
     </div>
 </div>
+
+<!-- Hidden data node to pass data to JS safely without triggering IDE syntax errors -->
+<div id="budget-data"
+     data-categories='{{ categories | tojson }}'
+     data-spent='[
+         {{ spent_by_category["Hotel"] }},
+         {{ spent_by_category["Transport"] }},
+         {{ spent_by_category["Food"] }},
+         {{ spent_by_category["Activities"] }},
+         {{ spent_by_category["Shopping"] }},
+         {{ spent_by_category["Emergency Fund"] }}
+     ]'
+     data-estimates='[
+         {{ ai_estimates["Hotel"] }},
+         {{ ai_estimates["Transport"] }},
+         {{ ai_estimates["Food"] }},
+         {{ ai_estimates["Activities"] }},
+         {{ ai_estimates["Shopping"] }},
+         {{ ai_estimates["Emergency Fund"] }}
+     ]'
+     style="display: none;">
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -215,18 +245,17 @@
             dateInput.value = today;
         }
 
+        // Retrieve values from data node
+        const dataNode = document.getElementById('budget-data');
+        const categories = JSON.parse(dataNode.dataset.categories);
+        const spentValues = JSON.parse(dataNode.dataset.spent);
+        const estimateValues = JSON.parse(dataNode.dataset.estimates);
+
         // --- Doughnut Chart ---
         const spentData = {
-            labels: {{ categories | tojson }},
+            labels: categories,
             datasets: [{
-                data: [
-                    {{ spent_by_category['Hotel'] }},
-                    {{ spent_by_category['Transport'] }},
-                    {{ spent_by_category['Food'] }},
-                    {{ spent_by_category['Activities'] }},
-                    {{ spent_by_category['Shopping'] }},
-                    {{ spent_by_category['Emergency Fund'] }}
-                ],
+                data: spentValues,
                 backgroundColor: [
                     '#3b82f6', // Hotel - Blue
                     '#06b6d4', // Transport - Cyan
@@ -259,32 +288,18 @@
 
         // --- Bar Chart ---
         const comparisonData = {
-            labels: {{ categories | tojson }},
+            labels: categories,
             datasets: [
                 {
                     label: 'AI Estimated Cost (INR)',
-                    data: [
-                        {{ ai_estimates['Hotel'] }},
-                        {{ ai_estimates['Transport'] }},
-                        {{ ai_estimates['Food'] }},
-                        {{ ai_estimates['Activities'] }},
-                        {{ ai_estimates['Shopping'] }},
-                        {{ ai_estimates['Emergency Fund'] }}
-                    ],
+                    data: estimateValues,
                     backgroundColor: 'rgba(79, 70, 229, 0.4)',
                     borderColor: 'rgb(79, 70, 229)',
                     borderWidth: 1
                 },
                 {
                     label: 'Actual Spent (INR)',
-                    data: [
-                        {{ spent_by_category['Hotel'] }},
-                        {{ spent_by_category['Transport'] }},
-                        {{ spent_by_category['Food'] }},
-                        {{ spent_by_category['Activities'] }},
-                        {{ spent_by_category['Shopping'] }},
-                        {{ spent_by_category['Emergency Fund'] }}
-                    ],
+                    data: spentValues,
                     backgroundColor: 'rgba(239, 68, 68, 0.6)',
                     borderColor: 'rgb(239, 68, 68)',
                     borderWidth: 1
